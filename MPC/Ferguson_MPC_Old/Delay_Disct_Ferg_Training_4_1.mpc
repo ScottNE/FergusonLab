@@ -1,0 +1,687 @@
+\
+\
+\  Training Phase: Delay Discounting
+\
+\  Scott Ng-Evans 2012
+\
+\
+\ From Rudolf N. Cardinal, Trevor W. Robbins,
+\      Barry J. Everitt, "The effects of d-amphetamine, 
+\      chlordiazepoxide, alpha-flupenthixol and behavioural 
+\      manipulations on choice of signalled and unsignalled
+\      delayed reinforcement in rats", Psychopharmacology (2000) 152:362-375
+\      "Subjects were first trained under a fixed-ratio 1 schedule to a 
+\       criterion of 50 presses in 30 min, first for the left lever and 
+\       then for the right. They were then trained on a simplified version 
+\       of the full task. The session began with the levers retracted 
+\       and the operant chamber in darkness. Every 40 s, a trial began 
+\       with illumination of the houselight and the traylight. The 
+\       subject was required to make a nosepoke response within 10 s, 
+\       or the current trial was aborted and the chamber returned to 
+\       darkness. If the subject nosepoked within this time limit, the
+\       traylight was extinguished and a single lever presented. If the 
+\       rat failed to respond on the lever within 10 s, the lever 
+\       was retracted and the chamber darkened, but if it responded,
+\       a single pellet was delivered immediately and the tray-light
+\       was illuminated until the rat collected the pellet (or a 10-s 
+\       collection time limit elapsed, when the chamber was darkened). In
+\       the Houselight condition, the houselight was left on until 6 s 
+\       afterthe food had been collected; in the Cue and No cue 
+\       conditions it was switched off at the moment the lever was pressed."
+\
+\ For the laboratory of Susan Ferguson
+\
+\
+
+\ Revisions:
+\
+\  9 - 2012: Amanda Wunsch - "the tray light should remain on until either 
+\                             a. the animal collects the food pellet (as indicated b
+\                             y a nose poke) or b. 10 s has elapsed following 
+\                             pellet delivery."
+\                            "the houselight should remain on for a. 10 s following 
+\                             pellet delivery if the rat does not collect the pellet 
+\                             (no nose poke occurs within 10 s of pellet delivery) or 
+\                             b. for 6 s following nose poke indicating collection 
+\                             of the pellet."
+\            - This is version 2
+\
+\  9 - 2012: Amanda Wunsch - "the delay lever should be retracted immediately 
+\                             following the choice of the delay lever"
+\                            "There are two more parameters that are not showing up (I think) 
+\                             that were mentioned in the Cardinal paper. One is the initiation 
+\                             latency, or time it takes the rat to nose poke in the food tray to 
+\                             initiate lever extension. The second is the collection latency, 
+\                             or the  time it takes the rat to nose poke following delivery of 
+\                             the pellet(s). The mean latency time over the entire session should 
+\                             be fine for both of these parameters."
+\            - This is version 3
+\
+\  10 - 2012: - Although the default is 8 blocks to run, the B and D arrays were not increased to
+\                match (testing has only 5 blocks instead of 8). This would produce an out of range
+\                error for arrays B and D.
+\             - This is version 4
+\
+\         
+\
+
+\
+\
+\
+\
+\
+\   OUTPUTS
+\
+   ^leftlevout  = 1
+   ^rightlevout = 2
+   ^feeder     	= 3
+   ^leftlt     	= 4
+   ^rightlt    	= 5
+   ^traylt     	= 6
+   ^houselt    	= 7
+   ^tone       	= 8
+   ^pump       	= 9
+   ^fan        	= 10
+
+
+\
+\   INPUTS
+\
+   ^leftlevin  	= 1
+   ^rightlevin 	= 3
+   ^headentry   = 5
+\  
+\
+
+
+
+\ Z-PULSES
+
+\ Z1  - Start trial 
+\ Z2  - Signal for reward delivery
+\ Z3  - Reward delivery over
+\ Z4  - Time for ITI - determined by timeout for no HE to extend levers 
+\         in time A(2) or no lever press in time A(2) once levers are
+\         extended; or once reward is delivered, by houselight state set
+\ Z5  - Lever extended, ready to accept input  *** NOT USED ***
+\ Z6  - Forced or Choice FR complete, delay if any starts
+\ Z7  - Choice made in choice trial
+\ Z8  - Right lever extends
+\ Z9  - Left lever extends
+\ Z10 - Right lever cue light on
+\ Z11 - Left lever cue light on
+\ Z12 - Head entry to extend levers
+\ Z13 - First head entry with pellet delivery
+
+
+
+\ VARIABLES
+
+\ A(0)  = Active lever (1:Right 2:Left)
+\ A(1)  = FR for active lever *** NOT USED IN FERGUSON VERSION ***
+\ A(2)  = Time allowed before a miss (sec)   
+\ A(3)  = Maximum session time (min) *** NOT USED IN FERGUSON VERSION ***
+\ A(4)  = Maximum number of reinforcers *** NOT USED IN FERGUSON VERSION ***
+\ A(5)  = Maximum Intertrial Interval (sec) (when there is no delay and/or when delay is not subtracted from ITI)
+\ A(6)  = Time-out time (sec) **** TIMEOUT NOT USED IN FERGUSON VERSION
+\ A(7)  = FR for right lever
+\ A(8)  = FR for left lever
+\ A(9)  = Reward magnitude for right lever (number of pellets delivered)
+\ A(10) = Reward magnitude for left lever (number of pellets delivered)
+\ A(11) = Delay to reward for right lever (sec)
+\ A(12) = Delay to reward for left lever (sec)
+\ A(13) = Number of trial blocks to run
+\ A(14) = Dummy variable for menu formatting
+\ A(15) = Subtract delay from max ITI? (0:no 1:yes)  *** NOT USED IN FERGUSON VERSION ***
+\ A(16) = Session condition (0:Houselight, 1:Cue, 2:No Cue)
+\ A(17) = Indicates headentry for pellet retrieval has occurred 
+\
+\ B()   = Delay list by block for right lever
+\
+\ C(0) = Temp variable for setting up lever pick list N
+\ C(1) = Temp variable for holding last subscript of lever pick list
+\ C(2) = Current ITI
+\ C(3) = Trial counter
+\ C(4) = Number of right lever presses
+\ C(5) = Number of left lever presses
+\ C(6) = Number of head entries into food hopper
+\ C(7) = Number of misses for forced trials
+\ C(8) = Number of misses for choice trials
+\ C(9) = Current trial type (forced = 0, choice = 1)
+\ C(10) = Counter for trial in block (0-11)
+\ C(11) = **** NOT USED ****
+\ C(15) = Number of choices on delay lever (see display column 10)
+\ C(16) = Number of choices on less-delayed reward lever (or immediate lever; see display column 11)
+\ C(17) = Mean lever-press latency for right lever forced trials
+\ C(18) = Mean lever-press latency for left lever forced trials
+\ C(19) = Mean lever-press latency for right lever choice trials
+\ C(20) = Mean lever-press latency for left lever choice trials
+\ C(21) = Temporary variable for lever-press latency calculations
+\ C(22-29) = Used in lever-press latency calculations
+\ C(30) = Number of right lever ITI responses  *** NOT USED IN FERGUSON VERSION ***
+\ C(31) = Number of left lever ITI responses   *** NOT USED IN FERGUSON VERSION ***
+\ C(32) = Number of right lever delay responses  *** NOT USED IN FERGUSON VERSION ***
+\ C(33) = Number of left lever delay responses *** NOT USED IN FERGUSON VERSION ***
+\ C(34) = Number of right lever timeout responses
+\ C(35) = Number of left lever timeout responses
+\ C(36) = Used in block number calculation
+\ C(37) = Current block number
+\ C(38) = Number of incorrect presses on right lever
+\ C(39) = Number of incorrect presses on left lever
+\ C(40) = Number of right choices
+\ C(41) = Number of left choices
+\ C(42) = Stores trial start time for calculating ITI
+\ C(43) = Stores time of pellet delivery to calculate head entry retrieval latency
+\ C(44) = Number of misses due to no head entry initiation in A(2) seconds
+\ C(45) = Time used to calculate initiating head entry latency
+\ C(46) = Number of initiating head entries in current block
+\ C(47) = Sum of head entry latencies in current block
+\ C(48) = Number of pellet retrieval head entries
+\ C(49) = Sum of pellet retieval head entry latencies
+\ C(50) = Number of head entries during delay (right lever forced or choice)
+\ C(51) = Number of head entries during delay (left lever forced or choice)
+\
+\ D()   = Delay list by block for left lever
+\ 
+\ E = Event stamps
+\     1 - Right lever press
+\     2 - Left lever press
+\     3 - Right lever extends
+\     4 - Left lever extends
+\     5 - Pellet delivery
+\     6 - Miss - no press in A(2) seconds
+\     7 - Food hopper head entry
+\     8 - House light turns on
+\     9 - House light turns off
+\    10 - Tone delivery
+\    11 - Right lever retracts
+\    12 - Left lever retracts
+\    13 - Forced trial starts, ITI over
+\    14 - Choice trials starts, ITI over
+\    15 - Wrong choice in forced trial
+\    16 - ITI starts
+\    17 - Right cue light turns on
+\    18 - Left cue light turns on
+\    19 - Right cue light starts flashing  ****  NOT USED IN FERGUSON VERSION
+\    20 - Left cue light starts flashing   ****  NOT USED IN FERGUSON VERSION
+\    21 - Right cue light turns off
+\    22 - Left cue lights turns off
+\    23 - Timeout over  **** NOT USED IN FERGUSON VERSION
+\    24 - Incorrect lever press in choice trial (can happen during FR completion)
+\    25 - Tray light turns ON
+\    26 - Tray light turns OFF
+\    27 - Miss - no nosepoke to initiate trial in A(2) seconds
+\    28 - Head entries during delay (right lever forced or choice)
+\    29 - Head entries during delay (left lever forced or choice)
+\    30 = Right lever delay response  *** NOT USED IN FERGUSON VERSION ***
+\    31 = Left lever delay response *** NOT USED IN FERGUSON VERSION ***
+\    32 = New block marker
+\   100 - Session ends, data saved
+\
+\ F = Time stamps
+\ G = Counter for event and time stamps
+\ H = Session timer
+\ I = Used to decide which lever list to use (J or K)
+\ J = Pick list for levers for forced trials
+\ K = Pick list for levers for forced trials
+\ L = Even position in lever list to start from
+\ M = List of trials for a block
+\ N = Final container for lever pick list for forced trials
+\ O = Mean head entry latencies to retrieve pellet per block (P(0) is block 1,..) for Right lever
+\ P = Temporary variable for current reward (number of pellets to deliver).
+\     Also used at session end in block choices display calculation.
+\ Q = Initiating head entry latency mean per block (Q(0) is block 1,..)
+\ R = Choices on right lever broken down by block (R(0) is block 1, R(1) is block 2, etc.)
+\ S = Choices on left lever broken down by block (S(0) is block 1, S(1) is block 2, etc.)
+\ T = Choices on 'delayed' lever broken down by block (T(0) is block 1, T(1) is block 2, etc.)
+\ U = Choices on 'immediate' lever broken down by block (U(0) is block 1, U(1) is block 2, etc.)
+\ V = Mean head entry latencies to retrieve pellet per block (V(0) is block 1,..) for Left lever
+\ X = Dummy variable for going through lever pick list N
+\ Y = Number of pellets delivered
+\ Z = Dummy variable for going through trial type list M
+
+VAR_ALIAS Condition (0:Houselt 1:Cue 2:NoCue) = A(16)
+VAR_ALIAS FR for right lever = A(7)
+VAR_ALIAS FR for left lever = A(8)
+VAR_ALIAS Reward for right lever = A(9)
+VAR_ALIAS Reward for left lever = A(10)
+VAR_ALIAS Delay rt lev block 1 (sec) = B(0)
+VAR_ALIAS Delay rt lev block 2 (sec) = B(1)
+VAR_ALIAS Delay rt lev block 3 (sec) = B(2)
+VAR_ALIAS Delay rt lev block 4 (sec) = B(3)
+VAR_ALIAS Delay rt lev block 5 (sec) = B(4)
+VAR_ALIAS Delay rt lev block 6 (sec) = B(5)
+VAR_ALIAS Delay rt lev block 7 (sec) = B(6)
+VAR_ALIAS Delay rt lev block 8 (sec) = B(7)
+VAR_ALIAS Delay lt lev block 1 (sec) = D(0)
+VAR_ALIAS Delay lt lev block 2 (sec) = D(1)
+VAR_ALIAS Delay lt lev block 3 (sec) = D(2)
+VAR_ALIAS Delay lt lev block 4 (sec) = D(3)
+VAR_ALIAS Delay lt lev block 5 (sec) = D(4)
+VAR_ALIAS Delay lt lev block 6 (sec) = D(5)
+VAR_ALIAS Delay lt lev block 7 (sec) = D(6)
+VAR_ALIAS Delay lt lev block 8 (sec) = D(7)
+VAR_ALIAS Time-limit to respond (sec) = A(2)
+VAR_ALIAS Max Intertrial interval (sec) = A(5) \ 40 seconds minimum
+\\VAR_ALIAS Sub trial time from max ITI (0:no 1:yes) = A(15)
+\\VAR_ALIAS Timeout duration (sec) = A(6) not used in Ferguson version
+VAR_ALIAS Number of trial blocks to run(max 8) = A(13)
+VAR_ALIAS Block trial types (0:forced 1:choice) = A(14)
+VAR_ALIAS       Trial 1  : = M(0)
+VAR_ALIAS       Trial 2  : = M(1)
+VAR_ALIAS       Trial 3  : = M(2)
+VAR_ALIAS       Trial 4  : = M(3)
+VAR_ALIAS       Trial 5  : = M(4)
+VAR_ALIAS       Trial 6  : = M(5)
+VAR_ALIAS       Trial 7  : = M(6)
+VAR_ALIAS       Trial 8  : = M(7)
+VAR_ALIAS       Trial 9  : = M(8)
+VAR_ALIAS       Trial 10 : = M(9)
+VAR_ALIAS       Trial 11 : = M(10)
+VAR_ALIAS       Trial 12 : = M(11)
+
+
+
+DIM A = 100
+DIM C = 100
+DIM E = 20000
+DIM F = 20000
+DIM N = 11
+DIM O = 50
+DIM Q = 50
+DIM R = 50
+DIM S = 50
+DIM T = 50
+DIM U = 50
+DIM V = 50
+
+List B = 0, 0, 0, 0, 0, 0, 0, 0
+List D = 0, 0, 0, 0, 0, 0, 0, 0
+List I = 1, 2
+List J = 1, 2, 2, 1, 2, 1, 2, 1, 1, 2, 1, 2
+List K = 2, 1, 2, 1, 1, 2, 1, 2, 1, 2, 2, 1
+List L = 0, 2, 4, 6, 8, 10
+List M = 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+
+
+
+S.S.1,    \ Session setup, ITI timing, ITI lever presses
+  S1,
+    0.01": ON ^fan;
+           SET A(2) = 10, A(5) = 40, A(6) = 5, A(7) = 1, A(8) = 1, A(9) = 1, A(10) = 1;
+           SET A(11) = 0, A(12) = 0, A(13) = 8;
+           SET C(1) = 11, C(10) = 0, E(G) = -987.987, F(G) = -987.987;
+           RANDI C(0) = I; RANDI X = L ---> S2
+  S2,
+    0.01": IF C(1)<0 [@ENDPICK, @CONTPICK]
+           @ENDPICK: ---> S3
+           @CONTPICK: IF C(0) = 1 [@CHJ, @CHK]
+                      @CHJ: SET N(C(1)) = J(C(1)); SUB C(1) ---> S2
+                      @CHK: SET N(C(1)) = K(C(1)); SUB C(1) ---> S2
+  S3,
+    #START: SET C(3) = 1, C(36) = 1, C(37) = 1, C(42) = H; LIST C(9) = M(Z);
+            IF C(9) = 0 [@FORCED, @CHOICE]
+            @FORCED: LIST A(0) = N(X); SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+            @CHOICE: SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+  S4,
+    #Z4: SET C(2) = (A(5)*100) - (H - C(42)), E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S5
+  S5,
+    C(2)#T: LIST C(9) = M(Z); SET A(17) = 0; IF C(9) = 0 [@FORCED, @CHOICE]
+            @FORCED: LIST A(0) = N(X); Z1; ADD C(3), C(36); SET C(42) = H, E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+            @CHOICE: Z1; ADD C(3), C(36); SET C(42) = H, E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+
+
+
+
+
+
+S.S.2,   \ Levers extend
+  S1,
+    #Z12: IF C(9) = 0 [@FORCED, @CHOICE]
+          @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                   @RIGHT: ON ^rightlevout; Z8; SET E(G) = 3, F(G) = H; 
+                           SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                   @LEFT:  ON ^leftlevout; Z9; SET E(G) = 4, F(G) = H;
+                           SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+          @CHOICE: ON ^rightlevout, ^leftlevout; Z8; Z9; SET E(G) = 3, F(G) = H; 
+                   SET E(G+1) = 4, F(G+1) = H, E(G+2) = -987.987, F(G+2) = -987.987; ADD G; ADD G ---> S2
+  S2,
+    #Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: OFF ^leftlevout; SET E(G) = 12, F(G) = H; 
+                 SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+         @LEFT:  OFF ^rightlevout; SET E(G) = 11, F(G) = H; 
+                 SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+  S3,
+    #Z4!#Z6: OFF ^rightlevout; SET E(G) = 11, F(G) = H; 
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S4,
+    #Z4!#Z6: OFF ^leftlevout; SET E(G) = 12, F(G) = H; 
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.3,   \ Stimulus lights (lever cue lights)
+   S1,
+     #Z6!#Z7: IF A(16) = 1 [@CUE, @NOCUE]
+              @CUE: IF A(0) = 1 [@RIGHT, @LEFT]
+                    @RIGHT: ON ^rightlt; Z10; SET E(G) = 17, F(G) = H; 
+                            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+                    @LEFT:  ON ^leftlt; Z11; SET E(G) = 18, F(G) = H;
+                            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+              @NOCUE: ---> SX
+  S2,
+    #Z2!#Z4: OFF ^rightlt; SET E(G) = 21, F(G) = H; 
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    #Z2!#Z4: OFF ^leftlt; SET E(G) = 22, F(G) = H; 
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1   
+
+
+
+
+
+
+S.S.4,   \ Houselight and ITI entry signal
+  S1,
+    #START!#Z1: ON ^houselt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z4: OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+    #Z6: IF A(16) > 0 [@HLOFF, @HLON]
+         @HLOFF: OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S6
+         @HLON: ---> S3
+  S3,
+    #Z2: ---> S4
+  S4,
+    #Z13: ---> S5
+    10": Z4; OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S5,
+    6": Z4; OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S6,  \ In no HL condition, must wait 10" before ITI starts
+    #Z2: ---> S7
+  S7,  \ In no HL condition, must wait 10" before ITI starts
+    10": Z4 ---> S1
+
+
+
+
+
+
+S.S.5,   \ Traylight
+  S1,
+    #START!#Z1: ON ^traylt; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z4: OFF ^traylt; SET E(G) = 26, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+    #Z12: OFF ^traylt; SET E(G) = 26, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+  S3,   
+    #Z2: ON ^traylt; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+    #Z4: ---> S1
+  S4,
+    #Z13: OFF ^traylt; SET E(G) = 26, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+    10": OFF ^traylt; SET E(G) = 26, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+
+S.S.6,   \ Pellet delivery
+  S1,
+    #Z2: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: SET P = A(9); IF P=0 [@NOREWARD, @REWARD]
+                 @NOREWARD: ---> S1
+                 @REWARD: ON ^feeder; ADD Y; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+         @LEFT: SET P = A(10); IF P=0 [@NOREWARD, @REWARD]
+                 @NOREWARD: ---> S1
+                 @REWARD: ON ^feeder; ADD Y; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    0.1": OFF ^feeder; SUB P; IF P=0 [@DONE, @NOTDONE]
+          @DONE: ---> S4
+          @NOTDONE: ---> S3
+  S3,
+    0.25": ON ^feeder; ADD Y; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S4,
+    0.25": Z3 ---> S1  \ allow some time for traylight if one pellet delivered
+
+
+
+
+
+
+S.S.7,   \  Lever press fixed ratio/choice and wait delay; delay lever presses(when used) and delay HEs
+  S1,
+    #Z12: IF C(9) = 0 [@FORCED, @CHOICE]
+          @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                   @RIGHT: ---> S2
+                   @LEFT:  ---> S4
+          @CHOICE: ---> S6
+  S2,
+    A(2)*100#T: Z4; ADD C(7); SET E(G) = 6, F(G) = H, E(G+1) =-987.987, F(G+1) = -987.987; ADD G ---> S1
+    1#R^rightlevin: IF A(7) = 1 [@FRDONE, @FRNOTDONE]
+                    @FRDONE: Z6 ---> S7
+                    @FRNOTDONE: ---> S3
+  S3,
+    A(7)-1#R^rightlevin: Z6 ---> S7
+  S4,
+    A(2)*100#T: Z4; ADD C(7); SET E(G) = 6, F(G) = H, E(G+1) =-987.987, F(G+1) = -987.987; ADD G ---> S1
+    1#R^leftlevin: IF A(8) = 1 [@FRDONE, @FRNOTDONE]
+                   @FRDONE: Z6 ---> S8
+                   @FRNOTDONE: ---> S5
+  S5,
+    A(8)-1#R^leftlevin: Z6 ---> S8
+  S6,
+    A(2)*100#T: Z4; ADD C(8); SET E(G) = 6, F(G) = H, E(G+1) =-987.987, F(G+1) = -987.987; ADD G ---> S1
+    1#R^rightlevin: ADD C(40), R(C(37)-1); SET A(0) = 1; Z7; IF A(11)>A(12) [@DELAYRESP, @NOTDELAYRESP]
+                    @DELAYRESP: ADD C(15), T(C(37)-1); IF A(7) = 1 [@FRDONE, @FRNOTDONE]
+                                @FRDONE: Z6 ---> S7
+                                @FRNOTDONE: ---> S9
+                    @NOTDELAYRESP: IF A(11)=A(12) [@NODELAY, @DELAY]
+                                   @NODELAY: IF A(7) = 1 [@FRDONE, @FRNOTDONE]
+                                             @FRDONE: Z6 ---> S7
+                                             @FRNOTDONE: ---> S9
+                                   @DELAY: ADD C(16), U(C(37)-1); IF A(7) = 1 [@FRDONE, @FRNOTDONE]
+                                           @FRDONE: Z6 ---> S7
+                                           @FRNOTDONE: ---> S9
+    1#R^leftlevin: ADD C(41), S(C(37)-1); SET A(0) = 2; Z7; IF A(12)>A(11) [@DELAYRESP, @NOTDELAYRESP]
+                   @DELAYRESP: ADD C(15), T(C(37)-1); IF A(8) = 1 [@FRDONE, @FRNOTDONE]
+                               @FRDONE: Z6 ---> S8
+                               @FRNOTDONE: ---> S10
+                   @NOTDELAYRESP: IF A(11)=A(12) [@NODELAY, @DELAY]
+                                  @NODELAY: IF A(8) = 1 [@FRDONE, @FRNOTDONE]
+                                            @FRDONE: Z6 ---> S8
+                                            @FRNOTDONE: ---> S10
+                                  @DELAY: ADD C(16), U(C(37)-1); IF A(8) = 1 [@FRDONE, @FRNOTDONE]
+                                          @FRDONE: Z6 ---> S8
+                                          @FRNOTDONE: ---> S10
+  S7,
+    A(11)*100#T: Z2 ---> S1
+    1#R^rightlevin: ADD C(32); SET E(G) = 30, F(G) = H;
+                    SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    1#R^headentry: ADD C(50); SET E(G) = 28, F(G) = H;
+                   SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+  S8,
+    A(12)*100#T: Z2 ---> S1
+    1#R^leftlevin: ADD C(33); SET E(G) = 31, F(G) = H;
+                   SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    1#R^headentry: ADD C(51); SET E(G) = 29, F(G) = H;
+                   SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+  S9,
+    A(7)-1#R^rightlevin: Z6 ---> S7
+  S10,
+    A(8)-1#R^leftlevin: Z6 ---> S8
+
+
+
+
+
+
+S.S.8,   \ Individual lever presses recorded and cumulated
+  S1,
+    #Z8!#Z9: IF C(9) = 0 [@FORCED, @CHOICE]
+             @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                      @RIGHT: ---> S3
+                      @LEFT:  ---> S4
+             @CHOICE: ---> S2
+  S2,
+    1#R^rightlevin: ADD C(4); SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    1#R^leftlevin: ADD C(5); SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: ---> S3
+         @LEFT:  ---> S4
+  S3,
+    1#R^rightlevin: ADD C(4); SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z4!#Z6: ---> S1
+  S4,
+    1#R^leftlevin: ADD C(5); SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z4!#Z6: ---> S1
+
+
+
+
+
+
+S.S.9,   \  Headentry recording and dependencies
+  S1,
+    #START: SET C(45) = H ---> S2
+  S2,         \\\\\ head entry to extend levers
+    1#R^headentry: Z12; ADD C(6), C(46); SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+                   SET C(47) = (H - C(45)) + C(47), Q(C(37)-1) = (C(47)/100)/C(46) ---> S3
+    A(2)*100#T: Z4; ADD C(44); SET A(17) = 1, E(G) = 27, F(G) = H, E(G+1) =-987.987, F(G+1) = -987.987; ADD G ---> S5
+  S3,          \\\\\ head entries before reward or miss
+    1#R^headentry: ADD C(6); SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z2: SET C(43) = H ---> S4
+    #Z4: SET A(17) = 1 ---> S5
+  S4,          \\\\\ head entry to retrieve pellet
+    1#R^headentry: ADD C(6), A(17); SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+                   IF A(17) = 1 [@FIRSTHE, @NOTFIRSTHE]
+                   @FIRSTHE: Z13; ADD C(48); SET C(49) = (H - C(43)) + C(49);
+                             IF A(0) = 1 [@RIGHT, @LEFT]
+                             @RIGHT: SET O(C(37)-1) = (C(49)/100)/C(48) ---> SX
+                             @LEFT:  SET V(C(37)-1) = (C(49)/100)/C(48) ---> SX
+                   @NOTFIRSTHE: ---> SX
+    10": ---> S5
+    #Z4: ---> S5
+  S5,          \\\\\ ITI headentries
+    1#R^headentry: ADD C(6); SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+                   IF A(17) > 0 [@NOHESIGNAL, @HESIGNAL]
+                   @NOHESIGNAL:   ---> SX
+                   @HESIGNAL: Z13; ADD C(48); SET C(49) = (H - C(43)) + C(49);
+                              IF A(0) = 1 [@RIGHT, @LEFT]
+                              @RIGHT: SET O(C(37)-1) = (C(49)/100)/C(48) ---> SX
+                              @LEFT:  SET V(C(37)-1) = (C(49)/100)/C(48) ---> SX
+    #Z1: SET C(45) = H ---> S2
+
+
+
+
+
+
+S.S.10,    \ Lever press latency from lever extends
+  S1,
+    #Z8!#Z9: SET C(21) = H ---> S2
+  S2,
+    1#R^rightlevin: SET C(21) = H - C(21); IF C(9) = 0 [@FORCED, @CHOICE]
+                    @FORCED: ADD C(22); SET C(24) = C(24) + C(21); SET C(17) = (C(24)/C(22))/100 ---> S1 
+                    @CHOICE: ADD C(26); SET C(27) = C(27) + C(21); SET C(19) = (C(27)/C(26))/100 ---> S1
+    1#R^leftlevin: SET C(21) = H - C(21); IF C(9) = 0 [@FORCED, @CHOICE]
+                   @FORCED: ADD C(23); SET C(25) = C(25) + C(21); SET C(18) = (C(25)/C(23))/100 ---> S1
+                   @CHOICE: ADD C(28); SET C(29) = C(29) + C(21); SET C(20) = (C(29)/C(28))/100 ---> S1
+    #Z4: ---> S1
+
+
+
+
+
+
+S.S.11,    \ Calculation for current block number and block delay set, zero out block head entry latency calcs
+  S1,
+    #START: SET A(11) = B(0), A(12) = D(0);
+            SET E(G) = 32, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z1: IF C(36)/12<=1 [@NORESET, @RESET]
+         @NORESET: ---> S2
+         @RESET: SET C(48) = 0, C(49) = 0, C(46) = 0, C(47) = 0; 
+                 SET C(36) = 1, A(11) = B(C(37)), A(12) = D(C(37)); ADD C(37);
+                 SET E(G) = 32, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.12,    \ Check that user entered reasonable max ITI - accounting for A(2) time limits and houselight time
+  S1,
+    #START: IF A(5) < 40 [@RESET, @ALLOW]
+            @RESET: SET A(5) = 40 ---> SX
+            @ALLOW: ---> SX
+
+
+
+
+
+
+S.S.13,   \ Display 
+  S1,
+    0.5": SHOW 1,  Trial: , C(3);
+          SHOW 2,  Block: , C(37);
+          SHOW 3,  Elapsed minutes: , H/6000;
+          SHOW 4,  Misses (forced trials): , C(7);
+          SHOW 5,  Misses (choice trials): , C(8);
+          SHOW 6,  Misses (head entry): , C(44);
+          SHOW 7,  Right Presses: , C(4);
+          SHOW 8,  Left Presses: , C(5);
+          SHOW 9,  Head Entries: , C(6);
+          SHOW 10, Pellets:,  Y;
+          SHOW 11, Delay choices: , C(15);
+          SHOW 12, Immediate choices: , C(16);
+          SHOW 13, Mean Rt lev lat FORCED: , C(17);
+          SHOW 14, Mean Lt lev lat FORCED: , C(18);
+          SHOW 15, Mean Rt lev lat CHOICE: , C(19);
+          SHOW 16, Mean Lt lev lat CHOICE: , C(20);
+          SHOW 17, Right Choices: , C(40);
+          SHOW 18, Left Choices: , C(41);
+          SHOW 19, Delay HE (right): , C(50);
+          SHOW 20, Delay HE (left): , C(51) ---> S1
+
+
+
+
+
+
+S.S.14,    \ Session timer
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF C(3)>(A(13) * 12) [@END, @NOTEND]
+           @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                 SET O(C(37)) = -987.987;
+                 SET Q(C(37)) = -987.987;
+                 SET V(C(37)) = -987.987;
+                 SET R(C(37)) = -987.987;
+                 SET S(C(37)) = -987.987;
+                 SET T(C(37)) = -987.987;
+                 SET U(C(37)) = -987.987;
+                 SUB C(3);
+                 SHOW 1,  Trial: , C(3);
+                 SHOW 2,  Block: , C(37);
+                 SHOW 3,  Elapsed minutes: , H/6000;
+                 SHOW 4,  Misses (forced trials): , C(7);
+                 SHOW 5,  Misses (choice trials): , C(8);
+                 SHOW 6,  Misses (head entry): , C(44);
+                 SHOW 7,  Right Presses: , C(4);
+                 SHOW 8,  Left Presses: , C(5);
+                 SHOW 9,  Head Entries: , C(6);
+                 SHOW 10, Pellets:,  Y;
+                 SHOW 11, Delay choices: , C(15);
+                 SHOW 12, Immediate choices: , C(16);
+                 SHOW 13, Mean Rt lev lat FORCED: , C(17);
+                 SHOW 14, Mean Lt lev lat FORCED: , C(18);
+                 SHOW 15, Mean Rt lev lat CHOICE: , C(19);
+                 SHOW 16, Mean Lt lev lat CHOICE: , C(20);
+                 SHOW 17, Right Choices: , C(40);
+                 SHOW 18, Left Choices: , C(41);
+                 SHOW 19, Delay HE (right): , C(50);
+                 SHOW 20, Delay HE (left): , C(51) ---> STOPABORTFLUSH 
+           @NOTEND: ---> S2
+
+

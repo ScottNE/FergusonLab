@@ -1,0 +1,313 @@
+\
+\ ******************************
+\ *                            *
+\ *   BASE: SF_TD_COKED_FR     *
+\ *                            *
+\ ****************************** 
+\ Scott Ng-Evans (2016)
+\                 
+\ 
+\ Tess Donckels: "Left Lever - Cue Light Self-Administration. Rats will be trained to press 
+\                 for IV infusions of saline, cocaine, or heroin (50uL delivered over 2.8 sec). 
+\                 The beginning of the session will be indicated by insertion of the left lever 
+\                 into the chamber. Each press of the left lever will result in an infusion and 
+\                 the illumination of the cue light above the lever for 20 seconds, during which 
+\                 time responses will not result in additional drug delivery (infusion should 
+\                 start when the cue light turns on). The infusions will be available on an FR1 
+\                 schedule. The end of the session will be indicated by retraction of the lever. 
+\                 No houselight will be illuminated during these sessions."
+\
+\
+\
+\ Revisions:
+\
+\  3-2017 - Susan Ferguson: "We wanted to start doing the within-session threshold procedure in 
+\                            our self-administration rats...
+\                            The procedure is as outlined in the attached papers - we would use 
+\                            a cue light during the infusion period (no tone) and have no timeout 
+\                            period following the infusion period (active lever responses during 
+\                            the infusion period would be recorded but not have any consequences). 
+\                            We will be doing this in Tess’s polydrug use rats as well as standard 
+\                            rats, so it would be good to have the option of not having an inactive 
+\                            lever out."
+\
+\                            Later: "It turns out we have the “fancy” variable speed syringe pumps, 
+\                            which are manually set to deliver a specific volume/rate and this can’t 
+\                            be overridden by a program. So with these pumps we can’t do the within-
+\                            session procedure - instead we will have to do the between-sessions method 
+\                            from the attached paper (2 hour sessions, each day a different infusion 
+\                            volume/rate that we manually set). Eventually I would like to get the 
+\                            standard pumps to do the within-session. So not sure if it is possible to 
+\                            have one program that would give options for either type of session - if 
+\                            not it makes sense to focus on the between-sessions method now."
+\
+\          Training phase from Oleson and Roberts, Neuropsychopharmacology, 2009 February; 34(3): 796–804:
+\                           "The start of a session was signaled by the extension of a lever into the 
+\                            experimental chamber. During acquisition and during FR and PR training sessions 
+\                            cocaine was infused as a bolus of about 0.1 ml of cocaine solution over 
+\                            approximately 4–5 seconds (adjusted according to body weight). Doses 
+\                            (0.75 and 1.5 mg/kg/inf) were manipulated by adjusting the concentration of 
+\                            cocaine solution (2.5 and 5.0 mg/ml, respectively). Following each response 
+\                            the lever was retracted and a light was illuminated for a 20-second time-out period."
+\
+\
+\
+
+\
+\
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^Syringepump    = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+
+
+
+\ Z-Pulses
+\
+\ Z1 time-out over, drug available
+\ Z2 drug delivery initiation
+
+
+\ Variable Definitions:
+
+\ A(0)  = Active lever (0:right 1:left)
+\ A(1)  = Drug infusion time (sec)
+\ A(2)  = Post-infusion time-out length (sec)
+\ A(3)  = Max session length in hours
+\ A(4)  = Fixed ratio - FR
+\ A(5)  = Session time displayed in minutes
+\ A(6)  = Dummy variable for Wizard first-line bug
+\ A(7)  = Dummy variabe for menu display
+\ A(8)  = Maximum number of drug infusions to end session
+\ A(9)  = Houselight during the session (0:off 1:on)
+\ A(10) = Extend both levers (0:Both 1:only active)
+\ A(11) = Use white cue lights or green light (0:White 1:Green)
+\
+\ B(0)  = Active FR right presses
+\ B(1)  = Active FR left presses
+\
+\ C(0) = Calculated timeout time (sec)
+\
+\ E = event identity stamp
+\       3  - Right active FR press
+\       4  - Left active FR press
+\       5  - Infusion start
+\       6  - Infusion end
+\      10  - Right lever extends
+\      11  - Left lever extends
+\      12  - Right lever retracts
+\      13  - Left lever retracts
+\      38  - Right lever cue light on
+\      39  - Left lever cue light on
+\      40  - Right lever cue light off
+\      41  - Left lever cue light off
+\      42  - Houselight on
+\      43  - Houselight off
+\      44  - Start of timeout period
+\      45  - End of timeout period
+\      50  - Green cue light on
+\      51  - Green cue light off
+\     100  - End session marker
+\      
+\ G = Event counter
+\ H = Session timer
+\ L = FR countdown variable for left
+\ R = FR countdown variable for right
+\ T = Event time stamp
+\ Y = number of reinforcers (infusions)
+
+
+DIM A = 50
+DIM B = 10
+DIM C = 10
+DIM E = 50000
+DIM T = 50000
+
+
+
+
+VAR_ALIAS -------------------------------------------------------------------- = A(26)
+VAR_ALIAS Max session length (hour) = A(3)
+VAR_ALIAS Max number of drug infusions = A(8)
+VAR_ALIAS Fixed Ratio = A(4)
+VAR_ALIAS Active lever (0:right 1:left) = A(0)
+VAR_ALIAS Extend both levers (0:Both 1:only active) = A(10)
+VAR_ALIAS Houselight during session (0:OFF 1:ON) = A(9)
+\\VAR_ALIAS Drug infusion time (sec) = A(1)  ****   SF lab using pumps with time and RPM setting on pumps
+VAR_ALIAS Time-out length (sec) = A(2)
+VAR_ALIAS Use white cue lights or green light (0:White 1:Green) = A(11)
+VAR_ALIAS ------------------------------------------------------------------- = A(27)
+
+
+
+
+S.S.1,  \ Default set-up and time-out timing
+  S1,  
+    0": SET A(0)  = 0;       \Active lever (0:right 1:left)
+        SET A(1)  = 2.8;     \Drug infusion time (sec)   ***** NOT USED HERE - SF LAB USING PUMPS WITH TIME SETTING ON THE PUMP
+        SET A(2)  = 20;      \Time-out length (sec)
+        SET A(3)  = 6;       \Maximum session length in hours
+        SET A(4)  = 1;       \Fixed ratio - FR
+        SET A(8)  = 20;      \Maximum number of drug infusions to end session
+        SET A(9)  = 0;       \Houselight during the session (0:OFF 1:ON)
+        SET A(10) = 1;       \Extend both levers (0:Both 1:only active)
+        SET A(11) = 0;       \Use white cue lights or green light (0:White 1:Green)
+        SET T(0)  = -987.987; SET E(0) = -987.987;
+        ON ^Fan ---> S2
+  S2, 
+    #START: ---> S3
+  S3,
+    #Z2: SET T(G) = H, E(G) = 44; ADD G; SET T(G) = -987.987, E(G) = -987.987;
+         SET C(0) = A(2)*1" ---> S4
+  S4,
+    C(0)#T: Z1; SET T(G) = H, E(G) = 45; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+
+
+
+
+
+S.S.2,  \ Individual active and inactive presses and FR
+  S1,  
+    #START!#Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+                @RIGHT: SET R = A(4) ---> S3
+                @LEFT: SET L = A(4) ---> S2
+  S2,
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 4; ADD G, B(1); SET T(G) = -987.987, E(G) = -987.987; 
+                     SUB L; IF L <= 0 [@FRDONE, @FRNOTDONE]
+                            @FRDONE: Z2 ---> S1
+                            @FRNOTDONE: ---> S2
+  S3,
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 3; ADD G, B(0); SET T(G) = -987.987, E(G) = -987.987; 
+                      SUB R; IF R <= 0 [@FRDONE, @FRNOTDONE]
+                             @FRDONE: Z2 ---> S1
+                             @FRNOTDONE: ---> S3
+
+
+
+
+
+S.S.3,  \ Infusion
+  S1,
+    #Z2: ON ^Syringepump; SET T(G) = H, E(G) = 5; ADD G, Y; SET T(G) = -987.987, E(G) = -987.987 ---> S2
+  S2,
+    .02": OFF ^Syringepump; SET T(G) = H, E(G) = 6; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S1
+    \\A(1)*1": OFF ^Syringepump; SET T(G) = H, E(G) = 6; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S1
+
+
+
+
+
+S.S.4,  \ House light
+  S1,
+    #START: IF A(9) = 0 [@HLOFF, @HLON]
+	    @HLOFF:  ---> SX
+	    @HLON: ON ^HouseLight; SET T(G) = H, E(G) = 42; ADD G; SET T(G) = -987.987; SET E(G) = -987.987 ---> SX
+ 
+
+
+
+
+S.S.5,   \ Lever Cue lights
+  S1,
+    #Z2: IF A(0) = 0 [@RIGHT, @LEFT]
+         @RIGHT: IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: ON ^GreenLight; 
+                         SET T(G) = H, E(G) = 50; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: ON ^RightCueLight; OFF ^LeftCueLight;
+                         SET T(G) = H, E(G) = 38; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @LEFT:  IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: ON ^GreenLight; 
+                         SET T(G) = H, E(G) = 50; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: ON ^LeftCueLight; OFF ^RightCueLight;
+                         SET T(G) = H; SET E(G) = 39; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+         @RIGHT: IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: OFF ^GreenLight; 
+                         SET T(G) = H, E(G) = 51; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: OFF ^RightCueLight, ^LeftCueLight;
+                         SET T(G) = H, E(G) = 40; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @LEFT:  IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: OFF ^GreenLight; 
+                         SET T(G) = H, E(G) = 51; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: OFF ^LeftCueLight, ^RightCueLight;
+                         SET T(G) = H; SET E(G) = 41; ADD G; SET T(G) = -987.987, E(G) = -987.987  ---> SX
+
+
+
+
+
+S.S.6,   \ Levers extend
+  S1,
+    #START!#Z1: IF A(10) > 0 [@ONELEVER, @TWOLEVERS]
+                @ONELEVER: IF A(0) = 0 [@RIGHT, @LEFT]
+                           @RIGHT: ON ^RightLeverOut; SET T(G) = H, E(G) = 10; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                           @LEFT: ON ^LeftLeverOut; SET T(G) = H, E(G) = 11; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                @TWOLEVERS: ON ^RightLeverOut, ^LeftLeverOut; 
+                            SET T(G) = H, E(G) = 10; ADD G; SET T(G) = H, E(G) = 11; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z2: IF A(10) > 0 [@ONELEVER, @TWOLEVERS]
+         @ONELEVER: IF A(0) = 0 [@RIGHT, @LEFT]
+                    @RIGHT: OFF ^RightLeverOut; SET T(G) = H, E(G) = 12; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                    @LEFT: OFF ^LeftLeverOut; SET T(G) = H, E(G) = 13; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @TWOLEVERS: OFF ^RightLeverOut, ^LeftLeverOut; 
+                     SET T(G) = H, E(G) = 12; ADD G; SET T(G) = H, E(G) = 13; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.7,  \ Session time display
+  S1,
+    #START: SHOW 1, SESS TIME(MIN): , A(5)/60 ---> S2
+  S2,
+    1": ADD A(5); SHOW 1, SESS TIME(MIN): , A(5)/60 ---> S2
+
+
+
+
+
+S.S.8,  \ Display 
+  S1,
+    #START: ---> S2
+  S2,
+    .5": SHOW 2, INFUSIONS: , Y;
+         SHOW 6, ACTIVE RT: , B(0); 
+         SHOW 7, ACTIVE LT: , B(1) ---> S2
+
+
+
+
+
+S.S.9,  \ Session timer and termination
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; 
+           IF (H <= (A(3)*360000)) AND (Y < A(8)) [@NOEND, @YESEND]
+	   @NOEND: ---> S2
+           @YESEND: IF Y >= A(8) [@WAITFORINFUSION, @NOWAIT]
+                    @WAITIFORINFUSION: ---> S3
+                    @NOWAIT: SET T(G) = H, E(G) = 100; SET T(G+1) = -987.987, E(G+1) = -987.987;
+                             SHOW 2, INFUSIONS: , Y;
+                             SHOW 6, ACTIVE RT: , B(0); 
+                             SHOW 7, ACTIVE LT: , B(1) ---> STOPABORTFLUSH
+   S3,
+     #Z1: SET T(G) = H, E(G) = 100; SET T(G+1) = -987.987, E(G+1) = -987.987;
+          SHOW 2, INFUSIONS: , Y;
+          SHOW 6, ACTIVE RT: , B(0); 
+          SHOW 7, ACTIVE LT: , B(1) ---> STOPABORTFLUSH

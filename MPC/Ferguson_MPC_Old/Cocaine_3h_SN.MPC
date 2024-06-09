@@ -1,0 +1,187 @@
+\November 25, 2009
+\3 h TRAINING WITH CUES--
+\FOR 3.3 RPM PUMP - INFUSION TIME 3.5 SEC / 0.75 MG/KG/INF
+\40 sec time out
+\MAX INFUSION=20 / 5 SESSION OF 1 HR 5 MIN APART
+\Cue light and tone
+
+
+\--INPUTS:
+\ #R1-ACTIVE LEVER (RETRACABLE)
+\ #R2-INACTIVE LEVER
+
+\--OUTPUTS:
+^ACTIVE=1       \SET TO 1 TO EXTEND RETRACTABLE LEVER
+^feeder=2
+^PUMP=8
+^CUELIGHT=5
+^SPEAKER=6
+^HOUSELIGHT=7
+
+
+DIM A = 10  \TIMERS
+
+DIM B = 10 \SET SESSION PARAMETERS IN S.S.1
+
+DIM C = 2   \INFUSION COUNTER FOR DISPLAY ON SCREEN
+DIM D = 2   \RESPONSES COUNTER FOR DISPLAY ON SCREEN
+DIM E = 2   \INACTIVE COUNTER FOR DISPLAY ON SCREEN
+
+\ 60 min infusions (K) responses (L), inactive (M)- FOR DATA STORAGE
+DIM K = 30
+DIM L = 30
+DIM M = 30
+
+\ Inter infusion time - III
+
+DIM H = 100   \INDEX Z - ALL SESSIONS
+
+
+\W = SESSION COUNTER
+\X = SET TIME PERIOD FOR DATA COLLECTION WITHIN SESSION - S.S.9
+\Y = INDEX FOR DATA COLLECTION IN ARRAYS K,L,M - S.S.9
+
+S.S.1,          \SET SESSION PARAMETERS
+S1,
+  1": SET B(0)=10;   \TIME BEFORE SESSION 1  
+  SET B(1)=60;   \SESSION DURATION--MIN   
+  SET B(2)=60;   \DATA BLOCK TIME-MIN          
+  SET B(3)=20;   \MAX # OF INFUSIONS   
+  SET B(4)=5 ;  \DELAY TIME BEFORE EACH SESSION--MIN 
+  SET B(5)=6--->S2     \SESSIONS PER RUN  
+  
+S2,
+   1500':--->S2
+
+S.S.2,          \ Timer for session start - A(0) 
+S1,
+   #start: SET W=0--->s2
+s2,
+   1": add A(0); show 4, SEC_ST, A(0); if A(0)=B(0) [@T,@F]
+                                        @T:--->S3
+                                        @F:--->S2
+s3, 
+        10": Z10--->S4
+S4,
+     1500':--->stopabort
+
+S.S.3,           \FR1 schedule 40 sec timeout 
+S1,
+   #z10 ! #Z29--->S2  
+S2,
+   0.1": ON ^houselight; ON ^active; Z17--->s3
+S3,
+   #R1: ON ^pump; ON ^cuelight; ON ^SPEAKER; Z2--->S4
+   #Z25:--->S1
+S4,
+     3.5": OFF ^pump;--->s5
+     #Z25:--->S1
+S5,
+     1.5": OFF ^cuelight; OFF ^SPEAKER--->S6
+     #Z25:--->S1
+s6,
+     35":--->S3
+     #Z25:--->S1
+
+\S.S.4, \CUE LIGHT OFF AFTER 20 SEC  NOT IN THIS VERSION
+
+\S1,
+\  #Z17:--->S2
+\S2,
+\  20": OFF ^CUELIGHT--->S1
+\  #Z25:--->S1
+
+S.S.5,       \ infusion count                   
+
+S1,
+   #Z2: add C(0), C(1); show 1, INF_S1, C(0); if C(0)=B(3) [@T,@F]
+       @T: OFF ^PUMP; OFF ^CUELIGHT; OFF ^HOUSELIGHT; OFF ^SPEAKER; OFF ^ACTIVE--->S1
+       @F:--->S1
+
+S.S.6,          \ responses count active lever
+
+S1,
+        #z10 ! #Z29--->S2
+S2,
+        #R1: add D(0), D(1); show 2, ACT_S1, D(0)--->s2
+        #Z25:--->S1
+
+S.S.7,       \ responses count inactive lever
+
+S1,
+   #z10 ! #Z29--->S2
+S2,
+   #R2: add E(0), E(1); show 3, INA_S1, E(0)--->s2
+   #Z25:--->S1   
+
+S.S.8,       \ INTER INFUSION INTERVAL - TIMER A(1), A(2)
+
+S1,
+     #z10 ! #Z29--->S2  
+s2,
+    1": add A(1); show 4, III, A(1)/60 --->sx
+    #z2: set A(2)=A(1); show 6, III, A(2)/60; set A(1)=0--->s2
+    #Z25: SET A(1)=0--->S1
+
+\ 20 MIN counter A(3) for COLLECTING DATA FOR infusions (K), total responses (L) and inactive lever (M)
+\ TIMER A(4)/B(2)   
+S.S.9,
+
+s1,
+	#Z10 ! #Z29: SET A(3) = B(2)--->s2
+S2,
+    1':add A(4); if A(4)=A(3) [@T,@F]
+       @T:Set K(Y)= C(1); Set L(Y)= D(1); Set M(Y)= E(1); 
+        Set A(4)=0; Set Y=Y+1; SET C(1) = 0,D(1)=0,E(1)=0--->S2
+       @F:--->S2
+       #Z25:SET A(4)=0--->S1
+
+\INTER INFUSION TIME - TIMER A(5)
+S.S.10,
+s1,
+    #z10!#z29:--->S2  
+s2,	 
+	1":Add A(5)--->s2
+      #z2: SET H(Z) = A(5)/60;Add Z;SET A(5) = 0--->S2
+      #Z25:set h(z) = w *(-1);add Z--->S1
+
+ 
+S.S.13,          \ session timer - A(7) - / B(1)
+S1,
+   #Z10 ! #Z29: ADD W; show 8, SES, W--->s2
+s2,
+   1': add A(7); show 5, SES_MIN,A(7); if A(7)=B(1) [@T,@F]
+                                        @T:--->s3
+                                        @F:--->S2
+s3, 
+        1": OFF ^active; OFF ^houselight; OFF ^CUELIGHT; OFF ^SPEAKER; off ^pump; Z25; SET A(7)=0--->S1
+
+S.S.14,          \ TIME OFF BETWEEN SESSIONS - TIMER A(8) / B(4)
+S1,
+   #Z25--->s2
+s2,
+   1': add A(8); show 5, OFF_MIN, A(8); if A(8)=B(4) [@T,@F]
+                                                @T:SET C(0)=0, D(0)=0, E(0)=0; SET A(8)=0; Z29--->S1
+                                                @F:--->S2
+
+S.S.16,          \ END OF SESSION
+S1,
+   #Z25: if W=B(5) [@T,@F]
+              @T:--->S2
+              @F:--->S1  
+S2,
+  5":--->STOPABORTFLUSH
+
+
+
+
+
+	
+
+
+
+
+
+
+
+

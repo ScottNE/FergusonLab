@@ -1,0 +1,714 @@
+\
+\
+\  Risky Decision Making Task - Phase 3
+\
+\  Scott Ng-Evans 2011
+\
+\
+\  Risky Decision Making
+\
+\
+\
+\  David Bucci and Andrea Robinson:
+\       "Test sessions consist of 5 blocks of 18 trials. Each block consists
+\        of 8 forced trials (where only 1 lever is extended) followed by 10 choice trials
+\        (where both levers are extended).
+\        A new trial begins with the house light and stimulus light above the food
+\        cup turning on.
+\        Forced trials:
+\        If the rat nose pokes into the food cup within 10 sec, then the stimulus light
+\        above the food cup is turned off and one lever is extended (left or right levers
+\        are presented an equal number of times, with no more than two consecutive presentations
+\        of the same lever for the 8 forced trials). If the rat does not nose poke within
+\        10 sec the house light and stimulus light above the food cup are extinguished for 5 sec,
+\        punishing the omitted response.
+\        If the rat presses the lever within 10 sec, then the extended lever is retracted, the
+\        house light turned off, the stimulus light above the food cup is turned on, and the pellet
+\        dispenser releases the appropriate reward (3 pellets or 1 pellet depending on the reward
+\        for that lever).  In addition, if the rat chooses the lever associated with the large
+\        reward a 35 mA scrambled footshock is delivered depending on the shock probability associated
+\        with that block of trials (0, 25, 50, 75, 100%).   The 8 forced trials reflect the shock
+\        probability associated with that block of trials (if during that block of trials there is a
+\        50% chance of shock then 2 out of the 4 presses on the large, risky lever results in a shock).
+\        Choice trials:
+\        After the rat successfully completes the 8 forced trials it moves on to the choice trial phase.
+\        A new trial starts with the house light and stimulus light above the food cup turning on.
+\        If the rat nose pokes into the food cup within 10 sec, then the stimulus light above the food
+\        cup is turned off and both levers are extended (if the rat does not nose poke within 10 sec the
+\        omitted response is punished by turning off the house light for 5 sec).
+\        Once either lever is pressed, both levers are immediately retracted and the house light turned off.
+\        Food delivery is accompanied by re-illumination of the stimulus light above the food cup, which
+\        is extinguished upon entry to the food cup to collect the food or after 10 sec, whichever occurs
+\        sooner.  If the rat chooses the “small safe lever” it receives 1 food pellet but if it
+\        chooses the 'large risky lever'� it receives 3 food pellets but it may be accompanied by a shock.
+\        Each block has a certain probability that a choice on the large, risky lever results in a shock.
+\        During the first block there is a 0% chance of a shock followed by 25% in the next block of
+\        trials, then 50%, 75%, and 100%.
+\        If the rat does not press a lever within 10 sec all lights are turned off for 5 sec
+\        punishing the omitted response."
+\
+
+\
+\
+\
+\
+\
+\   Revisions:
+\
+\   August 2017 - Changed INPUTS/OUTPUTS to match ferguson boxes
+\               - Neatened up code in S.S.1 so menu choices listed
+\
+\
+\   August 2017 - Elizabeth Crummy:
+\                 "Can it be changed so that it's restricted to 18 trials in a
+\                 block, regardless of whether a trial was an omission or response?"
+\                 - Added fan output for Ferguson boxes
+\                 - Made misses count as trials so they progress through blocks
+\
+\
+
+\
+\
+\
+
+
+
+\ INPUTS
+
+^leftlevin  = 1
+^rightlevin = 3
+^headentry  = 5
+
+
+
+\ OUTPUTS
+
+^leftlevout  = 1
+^rightlevout = 2
+^feeder      = 3
+^leftlt      = 4
+^rightlt     = 5
+^traylt      = 6
+^houselt     = 7
+^fan         = 10
+^shock       = 12
+
+
+
+\ Z-PULSES
+
+\ Z2 - Signal for reward delivery
+\ Z3 - Missed trial, no head entry in 10 sec to start trial, timeout
+\ Z4 - Reward delivery complete
+\ Z5 - Timeout over
+\ Z6 - Head entry to start trial
+\ Z7 - No lever press within A(2) sec, timeout
+\ Z8 - No head entry in 10 sec after reward pellet, turn off tray light
+\ Z9 - Head entry for reward food pellet, turn off tray light
+\ Z10 - ITI over, turn on traylight and wait for head entry
+\ Z11 - Lever choice is made in choice trial
+\ Z12 - Right lever extends (used for latency calcs)
+\ Z13 - Left lever extends (used for latency calcs)
+\ Z14 - First right lever response (used for latency calcs)
+\ Z15 - First left lever response (used for latency calcs)
+\ Z16 - Signals M variable calculated, used to calc sum of M values for block
+\ Z17 - Signals N variable calculated, used to calc sum of N values for block
+\ Z18 - Signals O variable calculated, used to calc sum of O values for block
+\ Z19 - Signals P variable calculated, used to calc sum of P values for block
+\ Z20 - Signals move to next block
+
+
+
+
+
+\ VARIABLES
+
+\ A(0)  = Active lever
+\ A(1)  = FR for right lever
+\ A(2)  = Time allowed before a miss (sec)
+\ A(3)  = Maximum session time (min)
+\ A(4)  = Maximum number of trials
+\ A(5)  = Time-out time (sec)
+\ A(6)  = Number of pellets to deliver for each reward *** NOT USED IN THIS PHASE, REPLACED WITH A(10) AND A(11)
+\ A(7)  = Inter-trial interval (ITI), starts after reward pellet delivery
+\ A(8)  = ITI jitter (+/- sec)
+\ A(9)  = FR for left lever
+\ A(10) = Reward for right lever
+\ A(11) = Reward for left lever
+\ A(12) = Number of blocks of 18 trials to run
+\ A(13) = Block number
+\ A(14) = Subscript for M variable
+\ A(15) = Subscript for N variable
+\ A(16) = Subscript for O variable
+\ A(17) = Subscript for P variable
+\ A(18) = Current ITI chosen from I list
+\ A(19) = Dummy variable used as subscript to choose from S list
+\ A(20) = Dummy variable used as subscript to choose from I list
+\ A(21) = Number of pellets delivered
+\ A(22-29) = Used in response latency calcs for blocks (V, W, X, Y lists)
+\ A(30) = Flag indicates move to next block to reset shock count-prob lists (U and T)
+\
+\ B(..) = Total choices of risky lever for each block
+\
+\ C(0) = Used to count pellets delivered
+\ C(1) = Used for right lever FR calculation
+\ C(2) = Number of rewarded trials
+\ C(3) = Current trial number (rewarded and nonrewarded)
+\ C(4) = Number of timeouts
+\ C(5) = Used in session time countdown
+\ C(6) = Number of right lever presses
+\ C(7) = Number of left lever presses
+\ C(8) = Total head entries
+\ C(9) = Timeout head entries
+\ C(10) = Number of 'nose poke omissions' - failure to do a head entry into the
+\          food tray to start trial
+\ C(11) = Number of lever press omissions
+\ C(12) = Left or right lever picked for forced trial
+\ C(13) = Current trial type (0=forced 1=choice)
+\ C(14) = ITI head entries
+\ C(15) = Used for left lever FR calculation
+\ C(16) = Sum of U or T list (list of shock deliveries in a block for forced or choice trials respectively)
+\ C(17) = Number of rewarded trial in current block
+\ C(18) = Number of right choices for current block
+\ C(19) = Number of left choices for current block
+\ C(20) = Used in latency calcs
+\ C(21) = Counter for T list
+\ C(22) = Counter for U list
+\ C(23) = Dummy variable for forced right or left lever picking from L list
+\ C(24) = Counter for number of shock deliveries
+\
+\ D(..) = Total choices for safe lever for each block
+\
+\ E = Event stamps
+\     1 - Right lever press
+\     2 - Left lever press
+\     3 - Right lever extends
+\     4 - Left lever extends
+\     5 - Pellet delivery
+\     6 - MISS - no press in time or FR not completed in time
+\     7 - Food tray head entry
+\     8 - House light turns on
+\     9 - House light turns off
+\    10 -
+\    11 - Right lever retracts
+\    12 - Left lever retracts
+\    13 - Right lever cue light ON
+\    14 - Right lever cue light OFF
+\    15 - Left lever cue light ON
+\    16 - Left lever cue light OFF
+\    17 - Food tray light ON
+\    18 - Food tray light OFF
+\    19 - MISS - no headentry in 10 sec to start trial
+\    20 - SHOCK turns ON
+\    21 - SHOCK turns OFF
+\    50 - Timeout over
+\   100 - Session ends, data saved
+\
+\ F = Time stamps
+\ G = Counter for event and time stamps
+\ H = Session timer
+\ I = List of times to choose from for ITI
+\ J = List of subscripts of I list to choose from
+\ L = List of left or right lever to pick for forced trials
+\ M(..) = Lever response latency in seconds for completed risky forced trials
+\ N(..) = Lever response latency in seconds for completed risky choice trials
+\ O(..) = Lever response latency in seconds for completed safe forced trials
+\ P(..) = Lever response latency in seconds for completed safe choice trials
+\ R = Risky list; list of probabilities of shock by block
+\ S = List of forced (0) and choice (1) trials for a block of trials
+\ T = List of shock/no shock deliveries within a block for choice trials
+\ U = List of shock/no shock deliveries within a block for forced trials
+\ V(..) = Mean lever response latency in seconds for completed risky forced trials for each block (-1 value indicates no mean for block)
+\ W(..) = Mean lever response latency in seconds for completed risky choice trials for each block (-1 value indicates no mean for block)
+\ X(..) = Mean lever response latency in seconds for completed safe forced trials for each block (-1 value indicates no mean for block)
+\ Y(..) = Mean lever response latency in seconds for completed safe choice trials for each block (-1 value indicates no mean for block)
+
+
+
+VAR_ALIAS FR for right lever = A(1)
+VAR_ALIAS FR for left lever = A(9)
+VAR_ALIAS Reward for right lever = A(10)
+VAR_ALIAS Reward for left lever = A(11)
+VAR_ALIAS Time-limit to press (sec) = A(2)
+VAR_ALIAS Timeout duration (sec) = A(5)
+VAR_ALIAS ITI (sec) = A(7)
+VAR_ALIAS ITI jitter (+/- sec) = A(8)
+VAR_ALIAS Number of blocks to run = A(12)
+
+
+DIM A = 30
+DIM B = 500
+DIM C = 30
+DIM D = 500
+DIM E = 20000
+DIM F = 20000
+DIM I = 2
+DIM M = 500  \this will be the max number of possible lever presentations!
+DIM N = 500
+DIM O = 500
+DIM P = 500
+DIM T = 20   \this will limit number of forced trials in block, because used for probability calcs
+DIM U = 20   \this will limit number of forced trials in block, because used for probability calcs
+DIM V = 50   \max number of blocks
+DIM W = 50   \max number of blocks
+DIM X = 50   \max number of blocks
+DIM Y = 50   \max number of blocks
+
+LIST J = 0, 1, 2
+LIST L = 0, 1
+LIST R = 0, .25, .50, .75, 1
+LIST S = 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1
+
+
+
+S.S.1,    \ Set defaults and trial timing
+  S1,
+    0": SET A(0) = 1;       \Current active lever
+        SET A(1) = 1;       \FR for right lever
+        SET A(2) = 10;      \Time allowed before a miss is counted (sec)
+        SET A(3) = 40;      \Maximum session time (min) - not used in Phase 3
+        SET A(4) = 30;      \Maximum trial number - not used in Phase 3
+        SET A(5) = 5;       \Timeout duration (sec)
+        SET A(6) = 1;       \Number of pellets to deliver for each reward - not used in phase 3
+        SET A(7) = 40;      \ITI (sec)
+        SET A(8) = 10;      \ITI jitter (+ and -) seconds
+        SET A(9) = 1;       \FR for left lever
+        SET A(10) = 1;      \Reward for right lever
+        SET A(11) = 3;      \Reward for left lever
+        SET A(12) = 5;      \Number of blocks to run
+        SET E(0) = -987.987, F(0) = -987.987 ---> S2
+  S2,
+    #START: ON ^fan;
+            LIST C(13) = S(A(19)); Z10;
+            IF (A(8) > 0) AND (A(8) < A(7)) [@NONZEROJITTER, @ZEROJITTER]
+            @NONZEROJITTER: SET I(0) = A(7) - A(8), I(1) = A(7), I(2) = A(7) + A(8) ---> S3
+            @ZEROJITTER: SET I(0) = A(7), I(1) = A(7), I(2) = A(7) ---> S3
+  S3,
+    #Z2: ADD C(2), C(3), C(17); RANDD A(18) = J ---> S4
+    #Z3!#Z7: ADD C(3); LIST C(13) = S(A(19)); IF A(19) = 1 [@UPBLOCK, @STAY]
+             @UPBLOCK: IF A(10) > A(11) [@RIGHTRISKY, @OTHER]
+                       @RIGHTRISKY: SET B(A(13)) = C(18), D(A(13)) = C(19), C(18) = 0, C(19) = 0, C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S6
+                       @OTHER: IF A(11) > A(10) [@LEFTRISKY, @OTHER]
+                               @LEFTRISKY: SET B(A(13)) = C(19), D(A(13)) = C(18), C(18) = 0, C(19) = 0, C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S6
+                               @OTHER: SET C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S6
+             @STAY: ---> S6
+  S4,
+    #Z8!#Z9: LIST C(13) = S(A(19)); IF A(19) = 1 [@UPBLOCK, @STAY]
+             @UPBLOCK: IF A(10) > A(11) [@RIGHTRISKY, @OTHER]
+                       @RIGHTRISKY: SET B(A(13)) = C(18), D(A(13)) = C(19), C(18) = 0, C(19) = 0, C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S5
+                       @OTHER: IF A(11) > A(10) [@LEFTRISKY, @OTHER]
+                               @LEFTRISKY: SET B(A(13)) = C(19), D(A(13)) = C(18), C(18) = 0, C(19) = 0, C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S5
+                               @OTHER: SET C(17) = 0; ADD A(13); Z20; SET A(30) = 1 ---> S5
+             @STAY: ---> S5
+  S5,
+    I(A(18))*100#T: Z10;
+                    IF A(30) = 1 [@RESETSHOCKLIST, @NORESET]
+                    @RESETSHOCKLIST: SET C(21) = 0, C(22) = 0, A(30) = 0 ---> S3
+                    @NORESET: ---> S3
+  S6,
+    #Z5: ---> S3
+
+
+
+
+
+S.S.2,   \ Levers extend, retract; choose the right or left, making sure not 3 LEFTs or 3 RIGHTs in a row
+  S1,
+    #Z6: IF C(13) = 0 [@FORCED, @CHOICE]
+         @FORCED: RANDD C(12) = L; IF C(12) = 0 [@RIGHT, @LEFT]
+                  @RIGHT: ON ^rightlevout; SET E(G) = 3, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, A(0) = 1; ADD G; Z12 ---> SX
+                  @LEFT:  ON ^leftlevout; SET E(G) = 4, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, A(0) = 2; ADD G; Z13 ---> SX
+         @CHOICE: ON ^rightlevout, ^leftlevout; SET E(G) = 3, F(G) = H, E(G+1) = 4, F(G+1) = H, G = G+2; SET E(G) = -987.987, F(G) = -987.987; Z12; Z13 ---> S2
+    #Z2!#Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+             @RIGHT: OFF ^rightlevout; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+             @LEFT:  OFF ^leftlevout; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+  S2,
+    #Z11: IF A(0) = 1 [@CHOICERIGHT, @CHOICELEFT]
+          @CHOICERIGHT: OFF ^leftlevout; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+          @CHOICELEFT:  OFF ^rightlevout; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+    #Z7: OFF ^leftlevout; OFF ^rightlevout;
+         SET E(G) = 12, F(G) = H; ADD G;
+         SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    #Z2!#Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: OFF ^rightlevout; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+         @LEFT:  OFF ^leftlevout; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+
+S.S.3,   \ Lever Cue Lights
+  S1,
+    #Z6: IF C(13) = 0 [@FORCED, @CHOICE]
+         @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                  @RIGHT: ON ^rightlt; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                  @LEFT:  ON ^leftlt; SET E(G) = 15, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+         @CHOICE: ON ^rightlt, ^leftlt; SET E(G) = 13, F(G) = H, E(G+1) = 15, F(G+1) = H, G = G+2; SET E(G) = -987.987, F(G) = -987.987 ---> S2
+    #Z2!#Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: OFF ^rightlt; SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+         @LEFT:  OFF ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+  S2,
+    #Z11: IF A(0) = 1 [@CHOICERIGHT, @CHOICELEFT]
+          @CHOICERIGHT: OFF ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+          @CHOICELEFT:  OFF ^rightlt; SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+    #Z7: OFF ^leftlt; OFF ^rightlt;
+         SET E(G) = 16, F(G) = H; ADD G;
+         SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    #Z2!#Z7: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: OFF ^rightlt; SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+         @LEFT:  OFF ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+
+
+S.S.4,   \ Houselight
+  S1,
+    #Z5!#Z10: ON ^houselt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z2!#Z3!#Z7: OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G  ---> SX
+
+
+
+
+
+S.S.5,   \ Pellet delivery
+  S1,
+    #Z2: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: IF A(10) > 0 [@REWARD, @NOREWARD]
+                 @REWARD: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, C(0) = A(10)-1; ADD G, A(21) ---> S2
+                 @NOREWARD: Z4 ---> SX
+         @LEFT: IF A(11) > 0 [@REWARD, @NOREWARD]
+                @REWARD: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, C(0) = A(11)-1; ADD G, A(21) ---> S2
+                @NOREWARD: Z4 ---> SX
+  S2,
+    .1": OFF ^feeder; IF C(0) <= 0 [@DONE, @NOTDONE]
+           @DONE: Z4 ---> S1
+           @NOTDONE: ---> S3
+  S3,
+    .1": ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(21); SUB C(0) ---> S2
+
+
+
+
+
+S.S.6,   \ Shock delivery - try to keep prob of shock as close to prob list (R list prob value for current block) as possible
+  S1,
+    #Z6: IF C(13) = 0 [@FORCED, @CHOICE]
+          @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                   @RIGHT: IF A(10) > A(11) [@RISKY, @SAFE]
+                           @RISKY: WITHPI = (R(A(13))*10000) [@SHOCK, @NOSHOCK]
+                                   @SHOCK: SET U(C(22)) = 1;
+                                           IF C(22) = 0 [@GOWITHPI, @CHECKPROB]
+                                           @GOWITHPI: ---> SX
+                                           @CHECKPROB: SUMARRAY C(16) = U,0,C(22);
+                                                       IF (C(16)/(C(22)+1)) > R(A(13)) [@NOSHOCK, @SHOCK]
+                                                       @NOSHOCK: SET U(C(22)) = 0 ---> SX
+                                                       @SHOCK: ---> SX
+                                   @NOSHOCK: SET U(C(22)) = 0;
+                                             IF C(22) = 0 [@GOWITHPI, @CHECKPROB]
+                                             @GOWITHPI: ---> SX
+                                             @CHECKPROB: SUMARRAY C(16) = U,0,C(22);
+                                                         IF (C(16)/(C(22)+1)) < R(A(13)) [@SHOCK, @NOSHOCK]
+                                                         @SHOCK: SET U(C(22)) = 1 ---> SX
+                                                         @NOSHOCK: ---> SX
+                           @SAFE: ---> S4
+                   @LEFT:  IF A(11) > A(10) [@RISKY, @SAFE]
+                           @RISKY: WITHPI = (R(A(13))*10000) [@SHOCK, @NOSHOCK]
+                                   @SHOCK: SET U(C(22)) = 1;
+                                           IF C(22) = 0 [@GOWITHPI, @CHECKPROB]
+                                           @GOWITHPI: ---> SX
+                                           @CHECKPROB: SUMARRAY C(16) = U,0,C(22);
+                                                       IF (C(16)/(C(22)+1)) > R(A(13)) [@NOSHOCK, @SHOCK]
+                                                       @NOSHOCK: SET U(C(22)) = 0 ---> SX
+                                                       @SHOCK: ---> SX
+                                   @NOSHOCK: SET U(C(22)) = 0;
+                                             IF C(22) = 0 [@GOWITHPI, @CHECKPROB]
+                                             @GOWITHPI: ---> SX
+                                             @CHECKPROB: SUMARRAY C(16) = U,0,C(22);
+                                                         IF (C(16)/(C(22)+1)) < R(A(13)) [@SHOCK, @NOSHOCK]
+                                                         @SHOCK: SET U(C(22)) = 1 ---> SX
+                                                         @NOSHOCK: ---> SX
+                           @SAFE: ---> S4
+          @CHOICE: ---> S2
+    #Z2: IF U(C(22)) = 1 [@GIVESHOCK, @NOSHOCK]
+         @GIVESHOCK: ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G; ADD C(22) ---> S3
+         @NOSHOCK: ADD C(22) ---> SX
+  S2,
+    #Z2: IF A(0) = 1 [@RIGHT, @LEFT]
+         @RIGHT: IF A(10) > A(11) [@RISKY, @SAFE]
+                 @RISKY: WITHPI = (R(A(13))*10000) [@SHOCK, @NOSHOCK]
+                         @SHOCK: SET T(C(21)) = 1;
+                                 IF C(21) = 0 [@GOWITHPI, @CHECKPROB]
+                                 @GOWITHPI: ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                                 @CHECKPROB: SUMARRAY C(16) = T,0,C(21);
+                                             IF (C(16)/(C(21)+1)) > R(A(13)) [@NOSHOCK, @SHOCK]
+                                             @NOSHOCK: SET T(C(21)) = 0; ADD C(21) ---> S1
+                                             @SHOCK: ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                         @NOSHOCK: SET T(C(21)) = 0;
+                                   IF C(21) = 0 [@GOWITHPI, @CHECKPROB]
+                                   @GOWITHPI: ADD C(21) ---> S1
+                                   @CHECKPROB: SUMARRAY C(16) = T,0,C(21);
+                                               IF (C(16)/(C(21)+1)) < R(A(13)) [@SHOCK, @NOSHOCK]
+                                               @SHOCK: SET T(C(21)) = 1; ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                                               @NOSHOCK: ADD C(21) ---> S1
+                 @SAFE: ---> S1
+         @LEFT:  IF A(11) > A(10) [@RISKY, @SAFE]
+                 @RISKY: WITHPI = (R(A(13))*10000) [@SHOCK, @NOSHOCK]
+                         @SHOCK: SET T(C(21)) = 1;
+                                 IF C(21) = 0 [@GOWITHPI, @CHECKPROB]
+                                 @GOWITHPI: ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                                 @CHECKPROB: SUMARRAY C(16) = T,0,C(21);
+                                             IF (C(16)/(C(21)+1)) > R(A(13)) [@NOSHOCK, @SHOCK]
+                                             @NOSHOCK: SET T(C(21)) = 0; ADD C(21) ---> S1
+                                             @SHOCK: ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                         @NOSHOCK: SET T(C(21)) = 0;
+                                   IF C(21) = 0 [@GOWITHPI, @CHECKPROB]
+                                   @GOWITHPI: ADD C(21) ---> S1
+                                   @CHECKPROB: SUMARRAY C(16) = T,0,C(21);
+                                               IF (C(16)/(C(21)+1)) < R(A(13)) [@SHOCK, @NOSHOCK]
+                                               @SHOCK: SET T(C(21)) = 1; ADD C(21); ON ^shock; ADD C(24); SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+                                               @NOSHOCK: ADD C(21) ---> S1
+                 @SAFE: ---> S1
+    #Z7: ---> S1
+  S3,
+    1": OFF ^shock; SET E(G) = 21, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S4,
+    #Z2: ---> S1
+
+
+
+
+
+S.S.7,   \ Tray light
+  S1,
+    #Z10!#Z5: ON ^traylt; SET E(G) = 17, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z6: OFF ^traylt; SET E(G) = 18, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+    #Z3: OFF ^traylt; SET E(G) = 18, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    #Z2: ON ^traylt; SET E(G) = 17, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+    #Z7: OFF ^traylt; SET E(G) = 18, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S4,
+    #Z8!#Z9: OFF ^traylt; SET E(G) = 18, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.8,    \ Head entries
+  S1,
+    #Z10: ---> S2
+  S2,
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8); Z6 ---> S3
+    10": Z3; SET E(G) = 19, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(10) ---> S4
+  S3,
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8) ---> SX
+    #Z2: ---> S5
+    #Z7: ---> S4
+  S4, \ TO Head Ents
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8), C(9) ---> SX
+    #Z5: ---> S2
+  S5,
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8); Z9 ---> S6
+    10": Z8 ---> S6
+  S6, \ ITI Head Ents
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8), C(14) ---> SX
+    #Z10: ---> S2
+
+
+
+
+S.S.9,    \ Lever responses
+  S1,
+    #Z6: IF C(13) = 0 [@FORCED, @CHOICE]
+              @FORCED: IF A(0) = 1 [@RIGHT, @LEFT]
+                  @RIGHT: SET C(1) = A(1) ---> S2
+                  @LEFT:  SET C(15) = A(9) ---> S3
+              @CHOICE: SET C(1) = A(1), C(15) = A(9) ---> S4
+  S2,
+    1#R^rightlevin: SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(6); SUB C(1);
+                   IF C(1) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2; IF A(1) = 1 [@FIRSTPRESS, @NOTFIRST]
+                          @FIRSTPRESS: Z14 ---> S1
+                          @NOTFIRST: ---> S1
+                   @NOTDONE: IF C(1) = (A(1)-1) [@FIRSTPRESS, @NOTFIRST]
+                             @FIRSTPRESS: Z14 ---> SX
+                             @NOTFIRST: ---> SX
+    A(2)*100#T: Z7; SET E(G) = 6, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(11) ---> S1
+  S3,
+    1#R^leftlevin: SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(7); SUB C(15);
+                   IF C(15) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2; IF A(9) = 1 [@FIRSTPRESS, @NOTFIRST]
+                          @FIRSTPRESS: Z15 ---> S1
+                          @NOTFIRST: ---> S1
+                   @NOTDONE: IF C(15) = (A(9)-1) [@FIRSTPRESS, @NOTFIRST]
+                             @FIRSTPRESS: Z15 ---> SX
+                             @NOTFIRST: ---> SX
+    A(2)*100#T: Z7; SET E(G) = 6, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(11) ---> S1
+  S4,
+    1#R^rightlevin: SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, A(0) = 1; ADD G, C(6), C(18); SUB C(1); Z11; Z14;
+                    IF C(1) <= 0 [@DONE, @NOTDONE]
+                    @DONE: ---> S7  \ Delay Z2 by 10msec for lever ext/ret state set
+                    @NOTDONE: ---> S5
+    1#R^leftlevin: SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, A(0) = 2; ADD G, C(7), C(19); SUB C(15); Z11; Z15;
+                   IF C(15) <= 0 [@DONE, @NOTDONE]
+                   @DONE: ---> S7   \ Delay Z2 by 10msec for lever ext/ret state set
+                   @NOTDONE: ---> S6
+    A(2)*100#T: Z7; SET E(G) = 6, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(11) ---> S1
+  S5,
+    1#R^rightlevin: SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(6); SUB C(1);
+                    IF C(1) <= 0 [@DONE, @NOTDONE]
+                    @DONE: Z2 ---> S1
+                    @NOTDONE: ---> SX
+  S6,
+    1#R^leftlevin: SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(7); SUB C(15);
+                   IF C(15) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2 ---> S1
+                   @NOTDONE: ---> SX
+  S7,
+    0": Z2 ---> S1
+
+
+
+
+
+S.S.10,    \ Timeout timing
+  S1,
+    #Z3!#Z7: ADD C(4) ---> S2
+  S2,
+    A(5)*100#T: Z5; SET E(G) = 50, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+\ *** LEVER RESP LATENCY CALCS BY TRIAL AND MEANS BY BLOCK ***
+
+S.S.11,   \ Lever response latencies
+  S1,
+    #Z12!#Z13: SET C(20) = H ---> SX
+    #Z14: IF C(13) = 0 [@FORCED, @CHOICE]
+          @FORCED: IF A(10) > A(11) [@RISKY, @SAFE]
+                   @RISKY: SET M(A(14)) = (H - C(20))/100; ADD A(14); Z16 ---> SX
+                   @SAFE: SET O(A(16)) = (H - C(20))/100; ADD A(16); Z18 ---> SX
+          @CHOICE: IF A(10) > A(11) [@RISKY, @SAFE]
+                   @RISKY: SET N(A(15)) = (H - C(20))/100; ADD A(15); Z17 ---> SX
+                   @SAFE: SET P(A(17)) = (H - C(20))/100; ADD A(17); Z19 ---> SX
+    #Z15: IF C(13) = 0 [@FORCED, @CHOICE]
+          @FORCED: IF A(11) > A(10) [@RISKY, @SAFE]
+                   @RISKY: SET M(A(14)) = (H - C(20))/100; ADD A(14); Z16 ---> SX
+                   @SAFE: SET O(A(16)) = (H - C(20))/100; ADD A(16); Z18 ---> SX
+          @CHOICE: IF A(11) > A(10) [@RISKY, @SAFE]
+                   @RISKY: SET N(A(15)) = (H - C(20))/100; ADD A(15); Z17 ---> SX
+                   @SAFE: SET P(A(17)) = (H - C(20))/100; ADD A(17); Z19 ---> SX
+
+
+
+S.S.12, \ Calculate latency V (mean M) values for each block - guards against fatal error, div by zero
+  S1,
+    #Z16: ADD A(22); SET A(23) = A(23) + M(A(14)-1) ---> SX
+    #Z20: IF A(22) > 0 [@CALCMEANM, @NOCLACMEANM]
+          @CALCMEANM: SET V(A(13)-1) = A(23)/A(22), A(22) = 0, A(23) = 0 ---> SX
+          @NOCALCMEANM: SET V(A(13)-1) = -1, A(22) = 0, A(23) = 0 ---> SX
+
+
+S.S.13, \ Calculate latency W (mean N) values for each block - guards against fatal error, div by zero
+  S1,
+    #Z17: ADD A(24); SET A(25) = A(25) + N(A(15)-1) ---> SX
+    #Z20: IF A(24) > 0 [@CALCMEANN, @NOCLACMEANN]
+          @CALCMEANN: SET W(A(13)-1) = A(25)/A(24), A(24) = 0, A(25) = 0 ---> SX
+          @NOCALCMEANN: SET W(A(13)-1) = -1, A(24) = 0, A(25) = 0 ---> SX
+
+
+S.S.14, \ Calculate latency X (mean O) values for each block - guards against fatal error, div by zero
+  S1,
+    #Z18: ADD A(26); SET A(27) = A(27) + O(A(16)-1) ---> SX
+    #Z20: IF A(26) > 0 [@CALCMEANO, @NOCLACMEANO]
+          @CALCMEANO: SET X(A(13)-1) = A(27)/A(26), A(26) = 0, A(27) = 0 ---> SX
+          @NOCALCMEANO: SET X(A(13)-1) = -1, A(26) = 0, A(27) = 0 ---> SX
+
+
+S.S.15, \ Calculate latency Y (mean P) values for each block - guards against fatal error, div by zero
+  S1,
+    #Z19: ADD A(28); SET A(29) = A(29) + P(A(17)-1) ---> SX
+    #Z20: IF A(28) > 0 [@CALCMEANP, @NOCLACMEANP]
+          @CALCMEANP: SET Y(A(13)-1) = A(29)/A(28), A(28) = 0, A(29) = 0 ---> SX
+          @NOCALCMEANP: SET Y(A(13)-1) = -1, A(28) = 0, A(29) = 0 ---> SX
+
+
+
+
+
+
+
+S.S.16,    \ Display variables
+  S1,
+    #START: SHOW 1, Block #: , A(13)+1;
+            SHOW 2, Total trials: , C(3);
+            SHOW 3, Rewarded trials: , C(2);
+            SHOW 4, Timeouts: , C(4);
+            SHOW 5, Pellets delivered: , A(21);
+            SHOW 6, Right lev presses: , C(6);
+            SHOW 7, Left lev presses: , C(7);
+            SHOW 8, Total Head Ents: , C(8);
+            SHOW 9, Timeout Head Ents: , C(9);
+            SHOW 10, NP Omissions: , C(10);
+            SHOW 11, LeverPress Omissions: , C(11);
+            SHOW 12, Shocks: , C(24) ---> S2
+  S2,
+    .5": SHOW 2, Total trials: , C(3);
+         SHOW 3, Rewarded trials: , C(2);
+         SHOW 4, Timeouts: , C(4);
+         SHOW 5, Pellets delivered: , A(21);
+         SHOW 6, Right lev presses: , C(6);
+         SHOW 7, Left lev presses: , C(7);
+         SHOW 8, Total Head Ents: , C(8);
+         SHOW 9, Timeout Head Ents: , C(9);
+         SHOW 10, NP Omissions: , C(10);
+         SHOW 11, LeverPress Omissions: , C(11);
+         SHOW 12, Shocks: , C(24);
+         IF (A(13)+1) > A(12) [@NODISPLAY, @DISPLAY]
+         @NODISPLAY: ---> S2
+         @DISPLAY: SHOW 1, Block #: , A(13)+1;
+                   IF A(13) > 0 [@DISPLAY, @NODISPLAY]
+                   @DISPLAY: SHOW (21+((A(13)-1)*5)), BLOCK: , A(13);
+                             SHOW (22+((A(13)-1)*5)), Risky choices: , B(A(13)-1);
+                             SHOW (23+((A(13)-1)*5)), Safe choices: , D(A(13)-1) ---> S2
+                   @NODISPLAY: ---> S2
+
+
+
+
+S.S.17,    \  Session timer, block limit
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF (A(13)+1) > A(12) [@END, @NOTEND]
+           @END: IF S.S.5 = 1 [@END, @WAIT]
+                 @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                       SET M(A(14)) = -987.987, N(A(15)) = -987.987, O(A(16)) = -987.987, P(A(17)) = -987.987;
+                       SET B(A(13)) = -987.987, D(A(13)) = -987.987;
+                       SET V(A(13)) = -987.987, W(A(13)) = -987.987, X(A(13)) = -987.987, Y(A(13)) = -987.987;
+                       SHOW 2, Total trials: , C(3);
+                       SHOW 3, Rewarded trials: , C(2);
+                       SHOW 4, Timeouts: , C(4);
+                       SHOW 5, Pellets delivered: , A(21);
+                       SHOW 6, Right lev presses: , C(6);
+                       SHOW 7, Left lev presses: , C(7);
+                       SHOW 8, Total Head Ents: , C(8);
+                       SHOW 9, Timeout Head Ents: , C(9);
+                       SHOW 10, NP Omissions: , C(10);
+                       SHOW 11, LeverPress Omissions: , C(11);
+                       SHOW 12, Shocks: , C(24);
+                       SHOW (21+((A(13)-1)*5)), BLOCK: , A(13);
+                       SHOW (22+((A(13)-1)*5)), Risky choices: , B(A(13)-1);
+                       SHOW (23+((A(13)-1)*5)), Safe choices: , D(A(13)-1) ---> STOPABORTFLUSH
+                 @WAIT: ---> SX
+          @NOTEND: ---> SX
+
+
+

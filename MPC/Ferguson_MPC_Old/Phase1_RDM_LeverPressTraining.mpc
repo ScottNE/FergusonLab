@@ -1,0 +1,347 @@
+\
+\
+\  Risky Decision Making Task - Phase 1
+\
+\  Scott Ng-Evans 2011
+\
+\
+\  Lever Press Training
+\
+\
+\
+\
+\  David Bucci and Andrea Robinson:
+\       "The session begins with the house light turning on.
+\         A trial begins with the stimulus light turning on above 
+\         either the right or left lever and that lever is extended 
+\         into the chamber (the other lever remains retracted for 
+\         the entire session).  A press on the lever within 30 sec 
+\         results in a single food pellet.  If the rat does not respond 
+\         within 30 sec the house light is turned off for 5 sec 
+\         (punishing the omitted response). The program continues 
+\         until the rat completes 50 trials or 30 min elapse."
+\
+
+\
+\
+\
+\
+\
+\   Revisions:
+
+\       7 - 2017: Revised for Susan Ferguson's lab
+\
+\
+
+
+\ INPUTS
+
+^leftlevin  = 1
+^rightlevin = 3
+^headentry  = 5 
+
+
+
+\ OUTPUTS
+
+^leftlevout  = 1
+^rightlevout = 2
+^feeder      = 3
+^leftlt      = 4
+^rightlt     = 5    
+^traylt      = 6
+^houselt     = 7
+^fan         = 10  
+^shock       = 12
+
+
+
+\ Z-PULSES
+
+\ Z1 - Start trial, 
+\ Z2 - Signal for reward delivery
+\ Z3 - Missed trial, timeout signal
+\ Z4 - Reward delivery complete
+\ Z5 - Timeout over
+
+
+
+\ VARIABLES
+
+\ A(0) = Active lever (1:Right 2:Left)
+\ A(1) = FR for active lever
+\ A(2) = Time allowed for lever pressing before a miss (sec)
+\ A(3) = Maximum session time (min)
+\ A(4) = Maximum number of trials
+\ A(5) = Time-out time (sec)
+\ A(6) = Number of pellets to deliver for each reward
+\ A(7) = Archived A(0) in case experimenter changes active lever during session
+\
+\ C(0) = Used to count pellets delivered
+\ C(1) = Used for FR calculation
+\ C(2) = Number of rewarded trials
+\ C(3) = Current trial number (rewarded and nonrewarded)
+\ C(4) = Number of timeouts
+\ C(5) = Used in session time countdown
+\ C(6) = Number of right lever presses
+\ C(7) = Number of left lever presses
+\ C(8) = Total head entries
+\ C(9) = Timeout head entries
+\
+\ E = Event stamps
+\     1 - Right lever press
+\     2 - Left lever press
+\     3 - Right lever extends
+\     4 - Left lever extends
+\     5 - Pellet delivery
+\     6 - Miss - no press in time or FR not completed in time
+\     7 - Food tray head entry
+\     8 - House light turns on
+\     9 - House light turns off
+\    10 - 
+\    11 - Right lever retracts
+\    12 - Left lever retracts
+\    13 - Right lever cue light ON
+\    14 - Right lever cue light OFF
+\    15 - Left lever cue light ON
+\    16 - Left lever cue light OFF
+\    50 - Timeout over
+\   100 - Session ends, data saved
+\
+\ F = Time stamps
+\ G = Counter for event and time stamps
+\ H = Session timer
+\ Y = Number of pellets delivered
+
+
+VAR_ALIAS Active lever (1:Right 2:Left) = A(0)
+VAR_ALIAS FR for active lever = A(1)
+VAR_ALIAS Reward size (pellets) = A(6)  \ENTER 0 FOR EXTINCTION
+VAR_ALIAS Time-limit to press (sec) = A(2)
+VAR_ALIAS Timeout duration (sec) = A(5)
+VAR_ALIAS Max session length (min) = A(3)
+VAR_ALIAS Max number rewarded trials = A(4)
+
+
+DIM A = 10
+DIM C = 11
+DIM E = 20000
+DIM F = 20000
+
+
+
+
+S.S.1,    \ Set defaults
+  S1,
+    0": SET A(0) = 1;    \Active lever (1:Right 2:Left)
+        SET A(1) = 1;    \FR for active lever
+        SET A(2) = 30;   \Time-limit to press (sec)
+        SET A(3) = 30;   \Max session length (min)
+        SET A(4) = 50;   \Max number rewarded trials
+        SET A(5) = 5;    \Timeout duration (sec)
+        SET A(6) = 1;    \Reward size (pellets)
+        SET C(3) = 1;
+        SET E(0) = -987.987, F(G) = -987.987---> S2
+  S2,
+    #START: ON ^fan;
+            SET A(7) = A(0); Z1 ---> S3
+  S3,
+    #Z2: ADD C(2) ---> S4
+  S4,
+    #Z4: Z1; ADD C(3) ---> S3 
+
+
+
+
+S.S.2,   \ Houselight
+  S1,
+    #START!#Z5: ON ^houselt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z3: OFF ^houselt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G  ---> SX
+
+
+
+
+S.S.3,   \ Levers extend, retract
+   S1,
+    #START: IF A(0) = 1 [@RIGHT, @LEFT]
+             @RIGHT: ON ^rightlevout; SET E(G) = 3, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+             @LEFT:  ON ^leftlevout; SET E(G) = 4, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+   S2,
+    #Z1: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE]
+         @LEVERCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                       @RIGHT: ON ^rightlevout; OFF ^leftlevout; SET E(G) = 3, F(G) = H, E(G+1) = 12, F(G+1) = H; ADD G;
+                               SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                       @LEFT:  ON ^leftlevout; OFF ^rightlevout; SET E(G) = 4, F(G) = H, E(G+1) = 11, F(G+1) = H; ADD G;
+                               SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+         @NOCHANGE: ---> SX
+    #Z3: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE] 
+         @LEVERCHANGE: IF A(7) = 1 [@RIGHT, @LEFT] 
+                       @RIGHT: OFF ^rightlevout; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                               ADD G ---> SX
+                       @LEFT:  OFF ^leftlevout; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               ADD G ---> SX
+         @NOCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                    @RIGHT: OFF ^rightlevout; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                    @LEFT:  OFF ^leftlevout; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z5: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE] 
+         @LEVERCHANGE: IF A(0) = 1 [@RIGHT, @LEFT] 
+                       @RIGHT: ON ^rightlevout; SET E(G) = 3, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               ADD G ---> SX
+                       @LEFT:  ON ^leftlevout; SET E(G) = 4, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               ADD G ---> SX
+         @NOCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                    @RIGHT: ON ^rightlevout; SET E(G) = 3, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                    @LEFT:  ON ^leftlevout; SET E(G) = 4, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.4,   \ Lever Cue Lights
+   S1,
+    #START: IF A(0) = 1 [@RIGHTLT, @LEFTLT]
+             @RIGHTLT: ON ^rightlt; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+             @LEFTLT:  ON ^leftlt; SET E(G) = 15, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+   S2,
+    #Z1: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE]
+         @LEVERCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                       @RIGHT: ON ^rightlt; OFF ^leftlt; SET E(G) = 13, F(G) = H, E(G+1) = 16, F(G+1) = H; ADD G;
+                               SET E(G+1) = -987.987, F(G+1) = -987.987, A(7) = A(0); ADD G ---> SX
+                       @LEFT:  ON ^leftlt; OFF ^rightlt; SET E(G) = 15, F(G) = H, E(G+1) = 14, F(G+1) = H; ADD G;
+                               SET E(G+1) = -987.987, F(G+1) = -987.987, A(7) = A(0); ADD G ---> SX
+         @NOCHANGE: ---> SX
+    #Z3: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE] 
+         @LEVERCHANGE: IF A(7) = 1 [@RIGHT, @LEFT] 
+                       @RIGHT: OFF ^rightlt; SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                               SET A(7) = A(0); ADD G ---> SX
+                       @LEFT:  OFF ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               SET A(7) = A(0); ADD G ---> SX
+         @NOCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                    @RIGHT: OFF ^rightlt; SET E(G) = 14, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                    @LEFT:  OFF ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z5: IF A(0) <> A(7) [@LEVERCHANGE, @NOCHANGE] 
+         @LEVERCHANGE: IF A(0) = 1 [@RIGHT, @LEFT] 
+                       @RIGHT: ON ^rightlt; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               SET A(7) = A(0); ADD G ---> SX
+                       @LEFT:  ON ^leftlt; SET E(G) = 15, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; 
+                               SET A(7) = A(0); ADD G ---> SX
+         @NOCHANGE: IF A(0) = 1 [@RIGHT, @LEFT]
+                    @RIGHT: ON ^rightlt; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                    @LEFT:  ON ^leftlt; SET E(G) = 15, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.5,   \ Pellet delivery
+  S1,
+    #Z2: IF A(6) > 0 [@REWARD, @NOREWARD]
+         @REWARD: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, C(0) = A(6)-1; ADD G, Y ---> S2
+         @NOREWARD: Z4 ---> SX
+  S2,
+    .1": OFF ^feeder; IF C(0) <= 0 [@DONE, @NOTDONE]
+           @DONE: Z4 ---> S1
+           @NOTDONE: ---> S3
+  S3, 
+    .1": ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, Y; SUB C(0) ---> S2
+
+
+
+
+S.S.6,    \ Head entries
+  S1,
+    #START: ---> S2
+  S2,
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8) ---> SX
+    #Z3: ---> S3
+  S3,  \ Timeout HEs
+    1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(8), C(9) ---> SX
+    #Z5: ---> S2
+
+
+
+
+S.S.7,    \ Lever responses
+  S1,
+    #Z1!#Z5: SET C(1) = A(1); IF A(0) = 1 [@RIGHT, @LEFT]
+                              @RIGHT: ---> S2
+                              @LEFT:  ---> S3
+  S2,
+    1#R^rightlevin: SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(6); SUB C(1);
+                   IF C(1) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2 ---> S1
+                   @NOTDONE: ---> SX
+    A(2)*100#T: Z3; SET E(G) = 6, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    1#R^leftlevin: SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, C(7); SUB C(1);
+                   IF C(1) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2 ---> S1
+                   @NOTDONE: ---> SX
+    A(2)*100#T: Z3; SET E(G) = 6, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.8,    \ Timeout timing
+  S1,
+    #Z3: ADD C(3), C(4) ---> S2
+  S2,
+    A(5)*100#T: Z5; SET E(G) = 50, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.9,    \ Display variables
+  S1,
+    #START: SHOW 2, Trial number: , C(3);
+            SHOW 3, Rewarded trials: , C(2);
+            SHOW 4, Timeouts: , C(4);
+            SHOW 5, Pellets delivered: , Y;
+            SHOW 6, Right lev presses: , C(6);
+            SHOW 7, Left lev presses: , C(7);
+            SHOW 8, Total Head Ents: , C(8);
+            SHOW 9, Timeout Head Ents: , C(9) ---> S2
+  S2,
+    .1": SHOW 2, Trial number: , C(3);
+         SHOW 3, Rewarded trials: , C(2);
+         SHOW 4, Timeouts: , C(4);
+         SHOW 5, Pellets delivered: , Y;
+         SHOW 6, Right lev presses: , C(6);
+         SHOW 7, Left lev presses: , C(7);
+         SHOW 8, Total Head Ents: , C(8);
+         SHOW 9, Timeout Head Ents: , C(9) ---> S2
+
+
+
+
+S.S.10,    \ Session time countdown
+  S1,
+    #START: SET C(5) = A(3); SHOW 1, Sess countdwn (min): , C(5)  ---> S2
+  S2,
+    1': SUB C(5); IF C(5) >= 0 [@DISPLAY, @NODISPLAY]
+                  @DISPLAY: SHOW 1, Sess countdwn (min): , C(5) ---> S2
+                  @NODISPLAY: ---> S2
+    
+
+
+
+S.S.11,    \  Session timer
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF (H>=(A(3)*6000)) OR (C(2)>=A(4)) [@END, @NOTEND]
+           @END: IF S.S.5 = 1 [@END, @WAIT]
+                 @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                       SHOW 2, Trial number: , C(3);
+                       SHOW 3, Rewarded trials: , C(2);
+                       SHOW 4, Timeouts: , C(4);
+                       SHOW 5, Pellets delivered:,  Y;
+                       SHOW 6, Right lev presses: , C(6);
+                       SHOW 7, Left lev presses: , C(7);
+                       SHOW 8, Total Head Ents: , C(8);
+                       SHOW 9, Timeout Head Ents: , C(9) ---> STOPABORTFLUSH
+                 @WAIT: ---> SX
+           @NOTEND: ---> SX
+
+
+

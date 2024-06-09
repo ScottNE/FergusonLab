@@ -1,0 +1,519 @@
+\  SF_Discrete_Trials
+\  Ng-Evans - 2019
+\
+\
+\  12 - 2019:  T. O'Neal: "DiscreteTrials: trial begins with extension of levers into box
+\              and initiation of a drug period (30s); successful completion of
+\              FR5 delivers reward, turns on white cue light (3s), and
+\              transitions to timeout; failure to complete schedule within
+\              30s results in omission and transition to timeout; timeout
+\              begins with retraction of levers and illumination of houselight,
+\              lasting 90s; after timeout, a new trial begins; repeats for 30 trials."
+\
+\
+\  12 - 2019:  T. O'Neal: "ShockTrials: identical to Discrete Trials,
+\              but on 25% of trials, the 1st lever press turns on the
+\              green cue light, signaling threat of impending footshock;
+\              completion of 5th press delivers 0.2mA footshock coincident
+\              with reward delivery, failure to complete results in omission"
+\
+\
+\
+\  Revisions:
+\
+\  12 - 2019: T. O'Neal: "can we set it so the shock follows immediately
+\             after the 5th press, and the infusion+cue start right after
+\             that?"
+\
+\
+\
+
+
+
+
+
+
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut       = 1
+^RightLeverOut      = 2
+^Feeder             = 3
+^LeftCueLight       = 4
+^RightCueLight      = 5
+^HouseLight         = 7
+^Sonalert           = 8
+^SyringepumpOn      = 9
+^Fan                = 10
+^GreenLight         = 11
+^Shock              = 12
+^SyringePumpOff     = 14
+^RightLeverPressTTL = 15
+^LeftLeverPressTTL  = 16
+
+
+
+\ Z-Pulses
+\
+\ Z1 time-out over, drug available
+\ Z2 reward signal - start delay, after which deliver drug/pellet
+\ Z3 omission - failure to finish FR in time start time-out
+\ Z4 start time-out period after cue lights
+\ Z5 first lever press of FR on right
+\ Z6 first lever press of FR on left
+\ Z15 right lever press TTL
+\ Z16 left lever press TTL
+\
+\
+\
+\ Variable Definitions:
+
+\ A(0)   = Reward lever (0:Left 1:Right 2:Both)
+\ A(1)   = Time-limit to finish ratio (sec)
+\ A(2)   = Time-out duration (sec)
+\ A(3)   = Fixed ratio on right
+\ A(4)   = Number of trials
+\ A(5)   = Drug or food (0:drug 1:food)
+\ A(6)   = Drug infusion duration (sec)
+\ A(7)   = White cue light on time (sec)
+\ A(8)   = Fixed ratio on left
+\ A(9)   = Shock lever (0:none 1:right 2:left)
+\ A(10)  = Shock duration (sec)
+\ A(11)  = Delay to cuelt-reward (sec)
+\
+\ B(0)   = A(1) converted to system time
+\ B(1)   = A(2) converted to system time
+\ B(2)   = A(6) converted to system time
+\ B(3)   = A(7) converted to system time
+\ B(4)   = Set to A(2) and used to display time-out countdown
+\ B(5)   = Set to A(1) for trial time limit cntdwn
+\ B(6)   = A(10) converted to system time
+\ B(7)   = A(11) converted to system time for reward
+\ B(8)   = A(11) converted to system time for cue light
+\
+\ C(0)   = Number of right responses
+\ C(1)   = Number of left responses
+\ C(2)   = Number of omissions
+\ C(3)   = Number of pellets delivered/ infusions
+\ C(4)   = Number of trials
+\ C(5)   = Number of head entries
+\ C(6)   = Number of shocks
+\ C(7)   = Counts every 4 trials to check shock probability
+\
+\ D(0)   = Used to count down responses on the fixed ratio
+\           for left responses
+\ D(1)   = Used to count down responses on the fixed ratio
+\           for right responses
+\ D(2)   = Used to count up for right lever FR
+\ D(3)   = Used to count up for left lever FR
+\
+\ E() = event identity stamp
+\ 1   - Right press
+\ 2   - Left press
+\ 3   - Head entry
+\ 4   - Food pellet delivery
+\ 5   - Syringe pump on
+\ 6   - Syring pump off
+\ 7   - Houselight on
+\ 8   - Houselight off
+\ 9   - Right cue light on
+\ 10  - Right cue light off
+\ 11  - Left cue light on
+\ 12  - Left cue light off
+\ 13  - Omission
+\ 14  - Timeout start
+\ 15  - Timeout end
+\ 16  - Right lever extends
+\ 17  - Right lever retracts
+\ 18  - Left lever extends
+\ 19  - Left lever retracts
+\ 20  - Shock on
+\ 21  - Shock off
+\ 22  - Green light on
+\ 23  - Green light off
+\ 100 - Session terminates
+\
+\ G      = Event counter
+\ H      = Session timer
+\
+\ O(0)   = Probability of shock (%)
+\ O(1)   = O(0) converted for withpi statement
+\ O(2)   = Signals shock (0:no shock  1:shock)
+\
+\ S      = Toggle for shock
+\
+\ T()    = Time stamps
+
+
+
+
+DIM A = 20
+DIM B = 10
+DIM C = 10
+DIM D = 10
+DIM E = 20000
+DIM O = 10
+DIM T = 20000
+
+
+
+VAR_ALIAS Reward lever (0:Left 1:Right 2:Both) = A(0)
+VAR_ALIAS Time-limit to finish FR (sec) = A(1)
+VAR_ALIAS Time-out duration (sec) = A(2)
+VAR_ALIAS Fixed ratio on right = A(3)
+VAR_ALIAS Fixed ratio on left = A(8)
+VAR_ALIAS Number of trials = A(4)
+VAR_ALIAS Drug or food (0:drug 1:food) = A(5)
+VAR_ALIAS Drug infusion duration (sec) = A(6)
+VAR_ALIAS White cue light on time (sec) = A(7)
+VAR_ALIAS Shock lever (0:none 1:right 2:left) = A(9)
+VAR_ALIAS Shock duration (sec) = A(10)
+VAR_ALIAS Probability of shock (%) = O(0)
+VAR_ALIAS Delay to cuelt-reward (sec) = A(11)
+
+
+
+S.S.1,    \Set defaults and time-out timing
+S1,
+  0": ON ^Fan;
+      SET A(0)  = 1;        \Reward lever (0:Left 1:Right 2:Both)
+      SET A(1)  = 30;       \Time-limit to finish FR (sec)
+      SET A(2)  = 90;       \Time-out duration (sec)
+      SET A(3)  = 5;        \Fixed ratio for right
+      SET A(4)  = 30;       \Number of trials
+      SET A(5)  = 0;        \Drug or food (0:drug 1:food)
+      SET A(6)  = 3;        \Drug infusion duration (sec)
+      SET A(7)  = 3;        \White cue light on time
+      SET A(8)  = 5;        \Fixed ratio for left
+      SET A(9)  = 1;        \Shock lever (0:none 1:right 2:left)
+      SET A(10) = 0.5;      \Shock duration (sec)
+      SET O(0)  = 25;       \Probability of shock (%)
+      SET A(11) = 0.5;      \Delay to cuelt-reward (sec)
+      SET E(0) = -987.987, T(0) = -987.987 ---> S2
+S2,
+  #START: ADD C(4), C(7) ---> S3
+S3,
+  #Z3!#Z4: SET B(1) = A(2) * 1";
+           SET E(G) = 14, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S4
+S4,
+  B(1)#T: Z1; ADD C(4), C(7);
+          SET E(G) = 15, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+
+
+
+
+
+S.S.2,    \Extend, retract levers
+S1,
+  #START!#Z1: ON ^LeftLeverOut, ^RightLeverOut;
+              SET E(G) = 16, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+              SET E(G) = 18, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+  #Z2!#Z3: OFF ^LeftLeverOut, ^RightLeverOut;
+           SET E(G) = 17, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+           SET E(G) = 19, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.3,     \Houselight
+S1,
+  #Z3!#Z4: ON ^HouseLight;
+           SET E(G) = 7, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+  #Z1: OFF ^HouseLight;
+       SET E(G) = 8, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.4,    \Cue lights
+S1,
+  #Z2: SET B(8) = A(11) * 1", B(3) = A(7) * 1" ---> S2
+S2,
+  B(8)#T: IF A(0) = 0 [@LEFT, @OTHER]
+          @LEFT:  ON ^LeftCueLight;
+                  SET E(G) = 11, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+          @OTHER: IF A(0) = 1 [@RIGHT, @BOTH]
+                  @RIGHT: ON ^RightCueLight;
+                          SET E(G) = 9, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+                  @BOTH: ON ^LeftCueLight, ^RightCueLight;
+                         SET E(G) = 9, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                         SET E(G) = 11, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+S3,
+  B(3)#T: IF A(0) = 0 [@LEFT, @OTHER]
+          @LEFT:  OFF ^LeftCueLight; Z4;
+                  SET E(G) = 12, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+          @OTHER: IF A(0) = 1 [@RIGHT, @BOTH]
+                  @RIGHT: OFF ^RightCueLight; Z4;
+                          SET E(G) = 10, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+                  @BOTH: OFF ^LeftCueLight, ^RightCueLight; Z4;
+                         SET E(G) = 10, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                         SET E(G) = 12, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.5,    \Reward - the SyringePumpOff signal makes use of control box on pumps with dial-in
+          \           timing and speed controls - it shuts the pump down independent of those
+          \           settings
+S1,
+  #Z2: SET B(7) = A(11) * 1" ---> S2
+S2,
+  B(7)#T: IF A(5) = 0 [@PUMP, @FEEDER]
+          @PUMP: SET B(2) = A(6) * 1";
+                 ON ^SyringePumpOn; ADD C(3);
+                 SET E(G) = 5, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+          @FEEDER: ON ^Feeder; ADD C(3);
+                   SET E(G) = 4, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S5
+S3,
+  B(2)#T: OFF ^SyringePumpOn; ON ^SyringePumpOff;
+          SET E(G) = 6, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S4
+S4,
+  0.3": OFF ^SyringePumpOff ---> S1
+S5,
+  0.1": OFF ^Feeder ---> S1
+
+
+
+
+
+S.S.6,    \Probability check for shock
+S1,
+    #START!#Z1: SET O(1) = O(0) * 100;
+                IF C(7) >= 2 [@CHECKPROB, @NOCHECK]
+                @CHECKPROB: IF C(3) > 0 [@CALCS, @NOCALCS]
+                            @CALCS: SET S = (C(6)/C(3))*100; ~S := round(S);~;
+                                    IF S > (O(0)+3) [@NOSHOCK, @OTHER]
+                                    @NOSHOCK: SET O(2) = 0, C(7) = 0 ---> SX
+                                    @OTHER: IF S < (O(0)-3) [@SHOCK, @PROB]
+                                            @SHOCK: SET O(2) = 1, C(7) = 0 ---> SX
+                                            @PROB: WITHPI = O(1) [@SHOCK, @NOSHOCK]
+                                                   @SHOCK: SET O(2) = 1, C(7) = 0 ---> SX
+                                                   @NOSHOCK: SET O(2) = 0, C(7) = 0 ---> SX
+                            @NOCALCS: ---> SX
+                 @NOCHECK: WITHPI = O(1) [@SHOCK, @NOSHOCK]
+                           @SHOCK: SET O(2) = 1 ---> SX
+                           @NOSHOCK: SET O(2) = 0 ---> SX
+
+
+
+
+
+S.S.7,    \Shock
+S1,
+  #Z5: IF A(9) = 1 [@SHOCK, @NOSHOCK]
+       @SHOCK: ---> S2
+       @NOSHOCK: ---> SX
+  #Z6: IF A(9) = 2 [@SHOCK, @NOSHOCK]
+       @SHOCK: ---> S2
+       @NOSHOCK: ---> SX
+S2,
+  #Z2: SET B(6) = A(10) * 1";
+       IF O(2) = 1 [@SHOCK, @NOSHOCK]
+       @SHOCK: ON ^Shock; ADD C(6);
+               SET E(G) = 20, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+       @NOSHOCK: ---> S1
+  #Z3: ---> S1
+S3,
+  B(6)#T: OFF ^Shock;
+          SET E(G) = 21, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.8,    \Green light
+S1,
+  #Z5: IF A(9) = 1 [@GREENLT, @NOGREENLT]
+       @GREENLT: IF O(2) = 1 [@GREENLT, @NOGREENLT]
+                 @GREENLT: ON ^GreenLight;
+                           SET E(G) = 22, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+                 @NOGREENLT: ---> SX
+       @NOGREENLT: ---> SX
+  #Z6: IF A(9) = 2 [@GREENLT, @NOGREENLT]
+       @GREENLT: IF O(2) = 1 [@GREENLT, @NOGREENLT]
+                 @GREENLT: ON ^GreenLight;
+                           SET E(G) = 22, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+                 @NOGREENLT: ---> SX
+       @NOGREENLT: ---> SX
+S2,
+  #Z2!#Z3: OFF ^GreenLight;
+           SET E(G) = 23, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.9,    \Fixed ratio responses
+S1,
+  #START!#Z1: SET B(0) = A(1) * 1";
+              IF A(0) = 0 [@LEFT, @OTHER]
+              @LEFT: SET D(0) = A(8) ---> S2
+              @OTHER: IF A(0) = 1 [@RIGHT, @BOTH]
+                      @RIGHT: SET D(1) = A(3) ---> S3
+                      @BOTH: SET D(0) = A(8), D(1) = A(3) ---> S4
+S2,
+  1#R^LeftLeverIn: SUB D(0); ADD D(3);
+                   IF D(0) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2;
+                          IF D(3) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                          @FIRSTRESP: Z6; SET D(3) = 0 ---> S1
+                          @NOTFIRSTRESP: SET D(3) = 0 ---> S1
+                   @NOTDONE: IF D(3) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                             @FIRSTRESP: Z6 ---> SX
+                             @NOTFIRSTRESP: ---> SX
+  B(0)#T: Z3; ADD C(2); SET D(3) = 0;
+          SET E(G) = 13, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+S3,
+  1#R^RightLeverIn: SUB D(1); ADD D(2);
+                    IF D(1) <= 0 [@DONE, @NOTDONE]
+                    @DONE: Z2;
+                           IF D(2) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                           @FIRSTRESP: Z5; SET D(2) = 0 ---> S1
+                           @NOTFIRSTRESP: SET D(2) = 0 ---> S1
+                    @NOTDOONE: IF D(2) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                               @FIRSTRESP: Z5 ---> SX
+                               @NOTFIRSTRESP: ---> SX
+  B(0)#T: Z3; ADD C(2); SET D(2) = 0;
+          SET E(G) = 13, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+S4,
+  1#R^LeftLeverIn: SUB D(0); ADD D(3);
+                   IF D(0) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2;
+                          IF D(3) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                          @FIRSTRESP: Z6; SET D(3) = 0 ---> S1
+                          @NOTFIRSTRESP: SET D(3) = 0 ---> S1
+                   @NOTDONE: IF D(3) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                             @FIRSTRESP: Z6 ---> SX
+                             @NOTFIRSTRESP: ---> SX
+  1#R^RightLeverIn: SUB D(1); ADD D(2);
+                    IF D(1) <= 0 [@DONE, @NOTDONE]
+                    @DONE: Z2;
+                           IF D(2) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                           @FIRSTRESP: Z5; SET D(2) = 0 ---> S1
+                           @NOTFIRSTRESP: SET D(2) = 0 ---> S1
+                    @NOTDOONE: IF D(2) = 1 [@FIRSTRESP, @NOTFIRSTRESP]
+                               @FIRSTRESP: Z5 ---> SX
+                               @NOTFIRSTRESP: ---> SX
+  B(0)#T: Z3; ADD C(2); SET D(2) = 0, D(3) = 0;
+          SET E(G) = 13, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.10,    \Record all presses (except when levers retarcted)
+S1,
+  #START!#Z1: ---> S2
+S2,
+  1#R^LeftLeverIn: ADD C(1); SET E(G) = 2, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                   Z^LeftLeverPressTTL ---> SX
+  1#R^RightLeverIn: ADD C(0); SET E(G) = 1, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    Z^RightLeverPressTTL ---> SX
+  #Z2!#Z3: ---> S1
+
+
+
+
+
+S.S.11,    \Head entries
+S1,
+  #START: ---> S2
+S2,
+  1#R^HeadEntry: ADD C(5); SET E(G) = 3, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.12,    \Display
+S1,
+  #START: ---> S2
+S2,
+  0.1": SHOW 1, Trial: , C(4);
+        SHOW 2, Rewards: , C(3);
+        SHOW 3, Right resps: , C(0);
+        SHOW 4, Left resps: , C(1);
+        SHOW 5, HeadEnts: , C(5);
+        SHOW 6, Omissions: , C(2);
+        SHOW 10, Shocks: , C(6);
+        IF C(3) > 0 [@DISPLAY, @NODISPLAY]
+        @DISPLAY: SHOW 9, Percent shocked: , (C(6)/C(3))*100 ---> S2
+        @NODISPLAY: SHOW 9, Percent shocked: , 0 ---> S2
+
+
+
+
+
+S.S.13,   \Time-out count down Display
+S1,
+  #Z3!#Z4: SET B(4) = A(2); SHOW 7, Time-out cntdwn: , B(4) ---> S2
+S2,
+  1": SUB B(4); SHOW 7, Time-out cntdwn: , B(4) ---> S2
+  #Z1: SET B(4) = 0; SHOW 7, Time-out cntdwn: , B(4) ---> S1
+
+
+
+
+
+S.S.14,   \Trial time count down Display
+S1,
+  #START!#Z1: SET B(5) = A(1); SHOW 8, Trial time cntdwn: , B(5) ---> S2
+S2,
+  1": SUB B(5); SHOW 8, Trial time cntdwn: , B(5) ---> S2
+  #Z2!#Z3: SET B(5) = 0; SHOW 8, Trial time cntdwn: , B(5) ---> S1
+
+
+
+
+
+S.S.15,    \Session timing and termination
+S1,
+  #START: ---> S2
+S2,
+  0.01": ADD H;
+         IF C(4) > A(4) [@END, @NOEND]
+         @END: SHOW 1, Trial: , C(4)-1;
+               SHOW 2, Rewards: , C(3);
+               SHOW 3, Right resps: , C(0);
+               SHOW 4, Left resps: , C(1);
+               SHOW 5, HeadEnts: , C(5);
+               SHOW 6, Omissions: , C(2);
+               SHOW 10, Shocks: , C(6);
+               SET E(G) = 100, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+               IF C(3) > 0 [@DISPLAY, @NODISPLAY]
+               @DISPLAY: SHOW 9, Percent shocked: , (C(6)/C(3))*100 ---> STOPABORTFLUSH
+               @NODISPLAY: SHOW 9, Percent shocked: , 0 ---> STOPABORTFLUSH
+         @NOEND: ---> S2
+
+
+
+
+
+\ TTL signals
+
+S.S.16,
+S1,
+  #Z^RightLeverPressTTL: ON ^RightLeverPressTTL ---> S2
+S2,
+  .02": OFF ^RightLeverPressTTL ---> S1
+
+
+
+
+
+S.S.17,
+S1,
+  #Z^LeftLeverPressTTL: ON ^LeftLeverPressTTL ---> S2
+S2,
+  .02": OFF ^LeftLeverPressTTL ---> S1
+
+

@@ -1,0 +1,273 @@
+\
+\ ************************
+\ *                      *
+\ *  TJO_SF_COKE_PROBES  *
+\ *                      *
+\ ************************
+\ Scott Ng-Evans (2018)
+\
+\
+\ Tim O'Neal: "to be used with fiber photometry to monitor the
+\              response of neuronal activity to presentation of
+\              drug-paired cues on select days of self-admin. The
+\              three cues to be used are the white cue light ("drug delivery"),
+\              the green cue light ("drug availability"), and the house
+\              light ("drug unavailability"). The session should include
+\              3 presentations of each cue light in a pseudorandom order
+\              (avoiding presentation of the same cue in multiple consecutive
+\              trials, if possible) for a total of 9 trials per session. Each
+\              cue presentation should last 3sec and be followed by a 3min
+\              washout/neutral period."
+\
+\
+\  Revisions:
+\
+\   3 - 2019: Tim O'Neal - "Right now, the neutral period A(2) is set at 3mins,
+\             but after some thought we were hoping to drop that down to 27
+\             seconds, with the cue presentations themselves staying at 3 seconds
+\             (so that each cycle lasts 30 seconds)."
+\
+\             This is TJO_SF_COKE_PROBES_LEFT_V2.mpc
+\
+\
+\
+\
+
+
+
+
+\
+\
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^SyringePumpOn  = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+^SyringePumpOff = 14
+
+
+
+
+\ Z-Pulses
+\
+\ Z1 - switch to new stimulus, start stimulus period
+\ Z2 - switch to neutral period, start neutral period
+\ Z3 - end session
+
+
+\ Variable Definitions:
+
+\ A(0)  = Number of presentations of each stimulus
+\ A(1)  = Duration of each cue presentation (sec)
+\ A(2)  = Duration of neutral, no-stimulus period (sec)
+\ A(3)  = Active white cue light (0:right 1:left)
+\
+\ B(0)  = Choice of stimulus type from L list
+\ B(1)  = Duration of cue presentation in system time
+\ B(2)  = Duration of neutral, no-stimulus period in system time
+\ B(3)  = Event number for current stimulus ON
+\ B(4)  = Event number for current stimulus OFF
+\ B(5)  = Number of stimulus presentations
+\ B(6)  = Last stimulus presented
+\
+\ C()   = Counters for stimulus outputs
+\
+\ D() = event time stamp
+\
+\ E() = event identity stamp
+\       3  - Right active FR press
+\       4  - Left active FR press
+\       5  - Infusion start
+\       6  - Infusion end
+\       7  - Food tray head entry
+\       8  - Right inactive press during FR
+\       9  - Left inactive press during FR
+\      10  - Right lever extends
+\      11  - Left lever extends
+\      12  - Right lever retracts
+\      13  - Left lever retracts
+\      34  - Right press during infusion and time-out period
+\      35  - Left press during infusion and time-out period
+\      36  - Right press in no-drug period
+\      37  - Left press in no-drug period
+\      38  - Right lever white cue light on
+\      39  - Left lever white cue light on
+\      40  - Right lever white cue light off
+\      41  - Left lever white cue light off
+\      42  - Houselight on
+\      43  - Houselight off
+\      44  - Drug period starts
+\      45  - No-drug period starts
+\      46  - Green cue light on
+\      47  - Green cue light off
+\      48  - Begin neutral period
+\      49  - End neutral period
+\     100  - End session marker
+\
+\ G   = Event counter
+\ H   = Session timer
+\ L() = List for light stimulus choice
+
+
+DIM A = 50
+DIM B = 50
+DIM C = 16
+DIM D = 50000
+DIM E = 50000
+
+LIST L = 5, 7, 11
+
+
+
+VAR_ALIAS ------------------------------------------------- = A(26) \ AZ updated
+VAR_ALIAS Number of presentations of each stimulus = A(0)
+VAR_ALIAS Duration of stimulus presentations (sec) = A(1)
+VAR_ALIAS Duration of neutral periods (sec) = A(2)
+VAR_ALIAS Active white cue light (0:right 1:left) = A(3)
+VAR_ALIAS ------------------------------------------------ = A(26)  \ AZ updated
+
+
+\ Default set-up, Stimulus type switching
+
+S.S.1,
+  S1,
+    0": SET A(0) = 3;      \Number of presentations of each stimulus
+        SET A(1) = 3;      \Duration of stimulus presentations (sec)
+        SET A(2) = 27;     \Duration of neutral periods (sec)
+        SET A(3) = 0;      \Active white cue light (0:right 1:left)
+        SET E(0) = -987.987, D(0) = -987.987 ---> S2
+  S2,
+    #START: RANDD B(0) = L; SET B(6) = B(0); SET B(1) = A(1) * 1"; Z1 ---> S3
+  S3,
+    B(1)#T: Z2; SET B(2) = A(2) * 1";
+            SET E(G) = 48, D(G) = H; ADD G;
+            SET E(G) = -987.987, D(G) = -987.987 ---> S4
+  S4,
+    B(2)#T: RANDD B(0) = L;
+            IF B(0) = B(6) [@AVOIDREPEATS, @CONTINUE]
+            @AVOIDREPEATS: RANDD B(0) = L ---> S5
+            @CONTINUE: IF C(B(0)) = A(0) [@MAXEDOUT, @NOTMAXEDOUT]
+                       @MAXEDOUT: RANDD B(0) = L ---> S5
+                       @NOTMAXEDOUT: SET B(1) = A(1) * 1"; SET B(6) = B(0); Z1;
+                                     SET E(G) = 49, D(G) = H; ADD G;
+                                     SET E(G) = -987.987, D(G) = -987.987 ---> S3
+   S5,
+     0": IF B(0) = B(6) [@AVOIDREPEATS, @CONTINUE]
+         @AVOIDREPEATS: RANDD B(0) = L ---> S5
+         @CONTINUE: IF C(B(0)) = A(0) [@MAXEDOUT, @NOTMAXEDOUT]
+                    @MAXEDOUT: RANDD B(0) = L ---> S5
+                    @NOTMAXEDOUT: SET B(1) = A(1) * 1"; SET B(6) = B(0); Z1;
+                                  SET E(G) = 49, D(G) = H; ADD G;
+                                  SET E(G) = -987.987, D(G) = -987.987 ---> S3
+
+
+
+
+S.S.2,   \ Turn ON/OFF stimuli
+  S1,
+    #START: ADD B(5);
+            IF B(0) = ^RightCueLight [@CUELT, @OTHER]
+            @CUELT: IF A(3) = 0 [@RIGHT, @LEFT]
+                    @RIGHT: SET B(0) = ^RightCueLight, B(3) = 38, B(4) = 40; ON B(0);
+                            ADD C(B(0));
+                            SET E(G) = B(3), D(G) = H; ADD G;
+                            SET E(G) = -987.987, D(G) = -987.987 ---> S2
+                    @LEFT: SET B(0) = ^LeftCueLight, B(3) = 39, B(4) = 41; ON B(0);
+                           ADD C(B(0));
+                           SET E(G) = B(3), D(G) = H; ADD G;
+                           SET E(G) = -987.987, D(G) = -987.987 ---> S2
+            @OTHER: ON B(0); ADD C(B(0));
+                    IF B(0) = ^HouseLight [@HOUSELIGHT, @GREENLIGHT]
+                    @HOUSELIGHT: SET B(3) = 42, B(4) = 43;
+                                 SET E(G) = B(3), D(G) = H; ADD G;
+                                 SET E(G) = -987.987, D(G) = -987.987 ---> S2
+                    @GREENLIGHT: SET B(3) = 46, B(4) = 47;
+                                 SET E(G) = B(3), D(G) = H; ADD G;
+                                 SET E(G) = -987.987, D(G) = -987.987---> S2
+  S2,
+    #Z2: OFF B(0); SET E(G) = B(4), D(G) = H; ADD G;
+         SET E(G) = -987.987, D(G) = -987.987 ---> S3
+  S3,
+    #Z1: ADD B(5);
+         IF (B(0) = ^RightCueLight) OR (B(0) = ^LeftCueLight) [@CUELT, @OTHER]
+         @CUELT: IF A(3) = 0 [@RIGHT, @LEFT]
+                 @RIGHT: SET B(0) = ^RightCueLight, B(3) = 38, B(4) = 40; ON B(0);
+                         ADD C(B(0));
+                         SET E(G) = B(3), D(G) = H; ADD G;
+                         SET E(G) = -987.987, D(G) = -987.987 ---> S2
+                 @LEFT: SET B(0) = ^LeftCueLight, B(3) = 39, B(4) = 41; ON B(0);
+                        ADD C(B(0));
+                        SET E(G) = B(3), D(G) = H; ADD G;
+                        SET E(G) = -987.987, D(G) = -987.987 ---> S2
+          @OTHER: ON B(0); ADD C(B(0));
+                  IF B(0) = ^HouseLight [@HOUSELIGHT, @GREENLIGHT]
+                  @HOUSELIGHT: SET B(3) = 42, B(4) = 43;
+                               SET E(G) = B(3), D(G) = H; ADD G;
+                               SET E(G) = -987.987, D(G) = -987.987 ---> S2
+                  @GREENLIGHT: SET B(3) = 46, B(4) = 47;
+                               SET E(G) = B(3), D(G) = H; ADD G;
+                               SET E(G) = -987.987, D(G) = -987.987---> S2
+
+
+
+
+
+
+S.S.3,  \ Current stimulus display
+  S1,
+    #Z1: IF B(0) = ^RightCueLight [@RIGHTLT, @OTHER]
+         @RIGHTLT: SHOW 1, White Rt Light, 0---> S2
+         @OTHER: IF B(0) = ^LeftCueLight [@LEFTLT, @OTHER]
+                 @LEFTLT: SHOW 1, White Lt Light, 0 ---> S2
+                 @OTHER: IF B(0) = ^HouseLight [@HOUSELT, @GREENLT]
+                         @HOUSELT: SHOW 1, House Lt, 0 ---> S2
+                         @GREENLT: SHOW 1, Green Lt, 0 ---> S2
+  S2,
+    #Z2: SHOW 1, Neutral Period, 0 ---> S1
+
+
+
+
+
+S.S.4,  \ Session time display
+  S1,
+    #START: ---> S2
+  S2,
+    1": SHOW 6, SESS TIME(MIN): , (H/100)/60 ---> S2
+
+
+
+
+
+S.S.5,  \ Session timer
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H ---> S2
+
+
+
+
+S.S.6,  \ Save data
+  S1,
+    #START: ---> S2
+  S2,
+    #Z2: IF A(3) = 0 [@RIGHT, @LEFT]
+         @RIGHT: IF (C(^RightCueLight) = A(0)) AND (C(^HouseLight) = A(0)) AND (C(^GreenLight) = A(0)) [] ---> STOPABORTFLUSH
+         @LEFT: IF (C(^LeftCueLight) = A(0)) AND (C(^HouseLight) = A(0)) AND (C(^GreenLight) = A(0)) [] ---> STOPABORTFLUSH
+

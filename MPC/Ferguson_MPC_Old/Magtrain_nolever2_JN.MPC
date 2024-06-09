@@ -1,0 +1,337 @@
+\
+\
+\  Magtrain_nolever
+\  Scott Ng-Evans (2006)
+\
+\
+\
+\  Jeremy Clark: "1) Magazine training: Very simple. House light on the 
+\                 entire session. No lever or light cue presentation. One 
+\                 food pellet delivered on VI 90s (range: 75-105). No 
+\                 magazine light with food delivery, just pellet delivery. 
+\                 I do want to record entries into the magazine. The session 
+\                 will have 20 pellet deliveries (trials)."
+\ 
+\  Revision history:
+\
+\                  1-18-2007 - added tray light cue when pellet delivered
+\
+\                  1-23-2007 - added codes for traylight turning ON and OFF
+\
+\                  1-24-2007 - added TTLs
+\
+\                  1-25-2007 - added wait for 3sec traylight before starting ITI
+\
+\                  1-31-2007 - made code 16 indicate end of ITI as it is in 
+\                               Pavlovian program
+\                            - made magazine head entries one code(24) instead of 
+\                               two codes(11&24) and confined them to one state
+\                               set
+\
+\                 11-19-2007 - made ITI start when tray light turns off rather than 3 
+\                               seconds before when light turns on 
+\
+\                 2-19-2008 - Another feeder was added to some of the chambers with
+\                              special banana-flavored pellets, so a choice of which
+\                              feeder to use was added.
+\
+\                 3-25-2008 - Jeremy Clark:"Please add the option to turn the magazine 
+\                             light off in the magazine training program"
+\
+\                 7 - 2008  - Removed TTLs for traylight when traylight not used.
+\
+\                 1 - 2010  - Added choice for random reward magnitude
+\
+\                 3 - 2010  - Jeremy Clark: " As per our recent discussion I need MagTrain_nolever 
+\                                              to be altered such that I can program the number of 
+\                                              pellets delivered per trial. As of now "trail" number 
+\                                              is listed as "reinforcements" in the program, I would 
+\                                              imagine that this will also need to be changed so that 
+\                                              there is no confusion about trial number versus actual 
+\                                              number of reinforcers (pellets) received in a session."
+\
+\                 5 - 2010 - Changed inputs and outputs for John Neumaier boxes at HMC, per request
+\                             from Dan Eskenazi
+\
+
+
+\
+\
+\
+\   Outputs
+\
+   ^leftlever  = 1
+   ^rightlever = 2
+   ^feeder1    = 3
+   ^traylt     = 6
+   ^leftlt     = 4
+   ^rightlt    = 5
+   ^houselt    = 7
+\              = 8  **open
+   ^feeder2    = 14   \NOT USED IN JN
+   ^fan        = 10   \NOT USED IN JN
+\
+\
+\   Inputs
+\
+   ^leftleverin  = 1
+   ^rightleverin = 3
+   ^headentry    = 5
+\
+\
+\  
+\   Z-pulses
+\
+\   Z1 - start trial
+\   Z2 - reward
+\   Z3 - Trial end 
+\   Z12 -  TTL outputs
+\        Z12 - Magazine tray light on                              - BIT 2
+\        Z13 - Magazine tray light off                             - BIT 3
+\        Z14 - Pellet delivery                                     - BIT 4
+\        Z15 - Magazine head entry                                 - BIT 5
+\        Z16 - Variable Rew magnitude = 1 pellet                   - BIT 6
+\        Z17 - Variable Rew magnitude = 2 pellets                  - BIT 7
+\        Z18 - Variable Rew magnitude = 4 pellets                  - BIT 8
+\        Z19 - Variable Rew magnitude = 8 pellets                  - BIT 9
+\
+\   
+\
+\   Event stamps ( array I )
+\
+\   5 = Reinforcement delivery
+\   16 = ITI over
+\   24 = Magazine head entry
+\   28 = Traylight turns on
+\   29 = Traylight turns off
+\
+\
+\   Variables
+\
+\   A(1) = Session length (min)
+\   A(2) = Maximum number of pellet deliveries
+\   A(3) = VI value
+\   A(4) = Total number of head entries
+\   A(5) = Pellet feeder to use (1:Standard pellets, 2:Special pellets like banana)
+\   A(6) = Output number of feeder in state set
+\   A(7) = Use magazine tray light? (0:NO  1:YES)
+\   A(8) = Value of tray light output number (0 if no tray light)
+\   A(9) = Vary reward magnitude (0:NO 1:YES)
+\   A(10) = Randomly selected reward magnitude from P list
+\   A(11) = Traylight time adjusted for pellet delivery
+\   A(12) = Number of pellets per trial (fixed reward magnitude)
+\   A(13) = Number of pellets delivered
+\   C = used to derive current VI time
+\   G = Event and time stamp counter
+\   H = Session timer in centiseconds
+\   I = Event identity stamp
+\   P = List for pellet delivery when used
+\   T = Time stamp
+\   V = list for VI times (sec)
+\   W = index for V
+\   Y = trial counter
+\
+
+
+
+DIM A = 50
+DIM C = 1
+DIM I = 20000
+DIM T = 20000
+DIM V = 4
+
+LIST P = 1,2,4,8
+
+LIST W = 0,1,2,3,4
+
+VAR_ALIAS Maximum session length (min) = A(1)
+VAR_ALIAS Maximum number of trials = A(2)
+VAR_ALIAS Pellet feeder to use (1:Standard 2:Special) = A(5)
+VAR_ALIAS VI value (10 sec or greater) = A(3)
+VAR_ALIAS Use magazine tray light (0:NO 1:YES) = A(7)
+VAR_ALIAS Vary reward magnitude (0:NO 1:YES) = A(9)
+VAR_ALIAS Fixed reward magnitude (pellets) = A(12)
+
+
+
+S.S.1,     \Trial timing control
+   S1, 
+     0": ON ^fan; SET A(1) = 120, A(2) = 20, A(3) = 90, A(5) = 1, A(12) = 1, I(0) = -987.987, T(0) = -987.987 ---> S2
+   S2,
+     #START: Z1 ---> S3
+   S3,
+     #Z2: ---> S5   \Wait for magazine traylight to turn off 
+   S4,
+     0.1": Z1 ---> S3
+   S5,
+     #Z13!#Z3: ---> S4
+     
+
+
+
+S.S.2,   \Head Entries
+   S1,
+     #START: ---> S2
+   S2,
+     1#R^headentry: SET T(G) = H, I(G) = 24, T(G+1) = -987.987, I(G+1) = -987.987; ADD G, A(4); Z15 ---> S2
+
+
+
+
+
+S.S.3,    \Houselight, Feeder, and traylight
+   S1,
+     #START: ON ^houselt; IF A(7) > 0 [@TRAYLIGHT, @NOTRAYLIGHT]
+             @TRAYLIGHT: SET A(8) = ^traylt ---> S2
+             @NOTRAYLIGHT: SET A(8) = 80 ---> S2
+   S2,
+     #Z2: ON A(8); SET T(G) = H, I(G) = 28, T(G+1) = -987.987, I(G+1) = -987.987; ADD G;
+          IF A(5)>1 [@SPECIAL, @NOSPECIAL]
+           @SPECIAL: SET A(6) = 14; IF A(8)<>^traylt [@NOTTL, @TTL]
+                     @NOTTL: IF A(9)>0 [@RANDREW, @NORANDREW]
+                             @RANDREW: RANDD A(10) = P; IF A(10) = 1 [@REW1, @OTHER]
+                                       @REW1: Z16; SET A(11) = 2.7 ---> S3
+                                       @OTHER: IF A(10) = 2 [@REW2, @OTHER]
+                                               @REW2: Z17; SET A(11) = 2.4 ---> S3
+                                               @OTHER: IF A(10) = 4 [@REW4, @REW8]
+                                                       @REW4: Z18; SET A(11) = 1.8 ---> S3
+                                                       @REW8: Z19; SET A(11) = .6 ---> S3
+                             @NORANDREW: SET A(10) = A(12), A(11) = 3 - (A(12)*.3) ---> S3
+                     @TTL: Z12; IF A(9)>0 [@RANDREW, @NORANDREW]
+                             @RANDREW: RANDD A(10) = P;IF A(10) = 1 [@REW1, @OTHER]
+                                       @REW1: Z16; SET A(11) = 2.7 ---> S3
+                                       @OTHER: IF A(10) = 2 [@REW2, @OTHER]
+                                               @REW2: Z17; SET A(11) = 2.4---> S3
+                                               @OTHER: IF A(10) = 4 [@REW4, @REW8]
+                                                       @REW4: Z18; SET A(11) = 1.8---> S3
+                                                       @REW8: Z19; SET A(11) = .6---> S3
+                             @NORANDREW: SET A(10) = A(12), A(11) = 3 - (A(12)*.3) ---> S3
+           @NOSPECIAL: SET A(6) = 15; IF A(8)<>^traylt [@NOTTL, @TTL]
+                     @NOTTL: IF A(9)>0 [@RANDREW, @NORANDREW]
+                             @RANDREW: RANDD A(10) = P; IF A(10) = 1 [@REW1, @OTHER]
+                                       @REW1: Z16; SET A(11) = 2.7 ---> S3
+                                       @OTHER: IF A(10) = 2 [@REW2, @OTHER]
+                                               @REW2: Z17; SET A(11) = 2.4 ---> S3
+                                               @OTHER: IF A(10) = 4 [@REW4, @REW8]
+                                                       @REW4: Z18; SET A(11) = 1.8 ---> S3
+                                                       @REW8: Z19; SET A(11) = .6 ---> S3
+                             @NORANDREW: SET A(10) = A(12), A(11) = 3 - (A(12)*.3) ---> S3
+                     @TTL: Z12; IF A(9)>0 [@RANDREW, @NORANDREW]
+                             @RANDREW: RANDD A(10) = P; IF A(10) = 1 [@REW1, @OTHER]
+                                       @REW1: Z16; SET A(11) = 2.7 ---> S3
+                                       @OTHER: IF A(10) = 2 [@REW2, @OTHER]
+                                               @REW2: Z17; SET A(11) = 2.4 ---> S3
+                                               @OTHER: IF A(10) = 4 [@REW4, @REW8]
+                                                       @REW4: Z18; SET A(11) = 1.8 ---> S3
+                                                       @REW8: Z19; SET A(11) = .6 ---> S3
+                             @NORANDREW: SET A(10) = A(12), A(11) = 3 - (A(12)*.3) ---> S3
+   S3,    
+     0.2": ON A(6); SET T(G) = H, I(G) = 5, T(G+1) = -987.987, I(G+1) = -987.987; ADD G, A(13); Z14 ---> S4
+   S4,
+     0.1": OFF A(6); SUB A(10); IF A(10)<=0 [@END, @GOON]
+           @END: IF A(11) <= 0 [@RESET, @NORESET]
+                 @RESET: SET A(11) = .1" ---> S5
+                 @NORESET: SET A(11) = A(11) * 1" ---> S5
+           @GOON: ---> S3
+   S5,
+     A(11)#T: OFF A(8); SET T(G) = H, I(G) = 29, T(G+1) = -987.987, I(G+1) = -987.987; ADD G;
+           IF A(8)<>^traylt [@NOTTL, @TTL]
+            @NOTTL: Z3 ---> S2
+            @TTL: Z3; Z13 ---> S2
+
+
+
+
+
+S.S.4,    \Session timer and reinforcer number limit
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF (H < A(1)*6000) AND (Y < A(2)) [@NOEND, @YESEND]
+	          @NOEND: ---> SX
+                  @YESEND: IF S.S.3 = 2 [@ENDSAVE, @NOENDSAVE]
+                           @ENDSAVE: IF Y <= A(2) [@DISPLAY, @NODISPLAY]
+                                     @DISPLAY: SHOW 1, Trials: ,Y, 2, Head Ents: , A(4), 3, Pellets: , A(13); SET T(G) = -987.987, I(G) = -987.987 ---> STOPABORTFLUSH
+                                     @NODISPLAY: SET T(G) = -987.987, I(G) = -987.987 ---> STOPABORTFLUSH
+                           @NOENDSAVE: ---> SX
+
+
+
+
+S.S.5,    \Set up VI list, run VI
+   S1,
+      #START: IF A(3)>20 [@TWEN, @NOTWEN]
+              @TWEN: SET V(0) = A(3) - 20, V(1) = A(3) - 10, V(2) = A(3), V(3) = A(3) + 10, V(4) = A(3) + 20 ---> S2
+              @NOTWEN: IF A(3)>10 [@TEN, @NOTEN]
+                       @TEN: SET V(0) = A(3) - 10, V(1) = A(3) - 5, V(2) = A(3), V(3) = A(3) + 5, V(4) = A(3) + 10 ---> S2
+                       @NOTEN: SET V(0) = 6, V(1) = 8, V(2) = 10, V(3) = 12, V(4) = 14 ---> S2  
+   S2,
+      0": RANDD C(0) = W; SET C(1) = V(C(0)) ---> S4
+   S3,
+      #Z13!#Z3: RANDD C(0) = W; SET C(1) = V(C(0)) ---> S4
+   S4,
+      C(1)*100#T: SET T(G) = H, I(G) = 16, T(G+1) = -987.987, I(G+1) = -987.987; ADD G, Y; Z2 ---> S3
+
+
+
+
+
+S.S.6,     \Display values
+   S1,
+      #START: ---> S2
+   S2,
+      1": IF Y <= A(2) [@DISPLAY, @NODISPLAY]
+          @DISPLAY: SHOW 1, Trials: ,Y, 2, Head Ents: , A(4), 3, Pellets: , A(13) ---> S2
+          @NODISPLAY: SHOW 2, Head Ents: , A(4), 3, Pellets: , A(13) ---> SX
+
+
+
+
+
+S.S.16,     \ TTL Outputs, State Sets 16-
+   S1,
+     #Z12: ON 19 ---> S2       
+   S2,
+     0.2": OFF 19 ---> S1
+
+S.S.17,
+   S1,
+     #Z13: ON 20 ---> S2
+   S2,
+     0.2": OFF 20 ---> S1
+
+S.S.18,
+   S1,
+     #Z14: ON 21 ---> S2
+   S2,
+     0.2": OFF 21 ---> S1
+
+S.S.19,
+   S1,
+     #Z15: ON 22 ---> S2
+   S2,
+     0.2": OFF 22 ---> S1
+
+S.S.20,
+   S1,
+     #Z16: ON 23 ---> S2
+   S2,
+     0.2": OFF 23 ---> S1
+
+S.S.21,
+   S1,
+     #Z17: ON 24 ---> S2
+   S2,
+     0.2": OFF 24 ---> S1
+
+S.S.22,
+   S1,
+     #Z18: ON 25 ---> S2
+   S2,
+     0.2": OFF 25 ---> S1
+
+S.S.23,
+   S1,
+     #Z19: ON 26 ---> S2
+   S2,
+     0.2": OFF 26 ---> S1

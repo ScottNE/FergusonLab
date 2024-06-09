@@ -1,0 +1,415 @@
+\
+\
+\  Reversal Task
+\
+\  Scott Ng-Evans 2018
+\
+\  For the laboratory of Susan Ferguson
+\
+\
+\  Adapted from: A neuronal mechanism underlying decision-making
+\                deficits during hyperdopaminergic states.
+\                Verharen et al. Nature Communications (2018)9:731.
+\
+\                E. Crummy: "In the reversal task, rats will undergo
+\                150 total trials of FR1 pressing, where an active and
+\                inactive lever are extended. Active levers will be
+\                chosen based on the “safe” lever association for the
+\                probability discounting task. Trials will consist of
+\                introduction of both levers. Selection of the active
+\                lever will result in delviery of one sucrose pellet,
+\                illumination of the white cue light above the active
+\                lever for 3 s, and retraction of both levers. Selection
+\                of the inactive lever will result in illumination of the
+\                green cue light and an additional 8s time-out period whereby
+\                the houselight is turned off. A new trial will begin 8 s after
+\                the last response, signaled by illumination of the houselight.
+\                After five consecutive responses on the active lever, the
+\                “active” lever will switch to the previously inactive one.
+\                Preservative responding and time to learn contingency changes
+\                will be assessed. Six sessions will be given on this task to
+\                assure stable performance before undergoing a clozapine and
+\                vehicle test, two days of retraining, and an additional test
+\                on the remaining treatment in a counterbalanced fashion."
+\
+\
+
+\  Revisions:
+\
+\
+\
+
+
+
+
+\
+\
+\
+\
+\   OUTPUTS
+\
+   ^LeftLevOut     = 1
+   ^RightLevOut    = 2
+   ^Feeder         = 3
+   ^LeftLt         = 4
+   ^RightLt        = 5
+   ^TrayLt         = 6
+   ^HouseLt        = 7
+   ^Tone           = 8
+   ^Pump           = 9
+   ^Fan            = 10
+   ^GreenLight     = 11
+
+
+\
+\   INPUTS
+\
+   ^LeftLevIn      = 1
+   ^RightLevIn     = 3
+   ^HeadEntry      = 5
+\
+\
+
+
+
+\ Z-PULSES
+\
+\ Z1  - Start trial
+\ Z2  - Signal for reward delivery
+\ Z3  - Reward delivery over
+\ Z4  - Time-out for selecting inactive lever
+\ Z5  - Time out over
+\ Z6  - Reversal
+\ Z7  - Active press signal for reversal block calcs
+\ Z8  - Inactive press signal for reversal block calcs
+
+
+
+
+\ VARIABLES
+\
+\ A(0)  = Initial active lever (1:Right 2:Left)
+\ A(1)  = FR for active lever
+\ A(2)  = Number of trials
+\ A(3)  = Duration of white lever cue light illumination (sec)
+\ A(4)  = Duration of green cue light illumination (sec)
+\ A(5)  = Time-out duration (sec)
+\ A(6)  = ITI duration (sec)
+\ A(7)  = Number of consecutive responses on active lever
+\         before switching active levers (ie. before reversal)
+\
+\ B(0) = ITI time (A(6)) converted to system time
+\ B(1) = Duration of lever cue light (A(3)) converted to system time
+\ B(2) = Duration of green cue light (A(4)) converted to system time
+\ B(3) = Time-out duration (A(5)) converted to system time
+\
+\ C(0) = Temp variable for fixed ratio count
+\ C(1) = Total right presses
+\ C(2) = Total left presses
+\ C(3) = Reversal number (0 means before first reversal)
+\ C(4) = Temp cumulator to determine if there should be a reversal
+\ C(5) = Total head entries into food tray
+\ C(6) = Temp variable for holding start time of reversal period for R() calcs
+\ C(7) = Trial number
+\
+\ E = Event stamps
+\     1 - Right lever press
+\     2 - Left lever press
+\     3 - Right lever extends
+\     4 - Left lever extends
+\     5 - Pellet delivery
+\     6 - Time-out starts
+\     7 - Food tray head entry
+\     8 - House light turns on
+\     9 - House light turns off
+\    11 - Right lever retracts
+\    12 - Left lever retracts
+\    16 - ITI starts
+\    17 - Right cue light turns on
+\    18 - Left cue light turns on
+\    21 - Right cue light turns off
+\    22 - Left cue lights turns off
+\    23 - Time-out over
+\    25 - Tray light turns ON
+\    26 - Tray light turns OFF
+\    33 - Green cue light on
+\    34 - Green cue light off
+\    35 - Reversal (switch active lever)
+\    36 - ITI ends
+\   100 - Session ends, data saved
+\
+\ F   = Time stamps
+\ G   = Counter for event and time stamps
+\ H   = Session timer
+\ I() = Number of responses on inactive lever for each reversal period
+\ J() = Number of responses on active lever for each reversal period
+\ R() = Time it takes to reverse for each reversal (sec),
+\         ie, reflects time to learn reversal
+\ T() = Time stamps for reversals
+\ Y   = Number of pellets delivered
+
+
+
+
+
+VAR_ALIAS Initial active lever (0:right 1:left) = A(0)
+VAR_ALIAS FR for active lever = A(1)
+VAR_ALIAS Number of trials = A(2)
+VAR_ALIAS ITI duration (sec) = A(6)
+VAR_ALIAS Time-out duration (sec) = A(5)
+VAR_ALIAS Duration of lever cue light (sec) = A(3)
+VAR_ALIAS Duration of green cue light (sec) = A(4)
+VAR_ALIAS Consecutive active presses to reverse = A(7)
+
+
+
+
+DIM A = 20
+DIM B = 20
+DIM C = 20
+DIM E = 20000
+DIM F = 20000
+DIM I = 100
+DIM J = 100
+DIM R = 100
+DIM T = 100
+
+
+
+
+
+
+S.S.1,    \ Session setup, ITI timing
+  S1,
+    0.01": ON ^Fan;
+           SET A(0)   = 0;       \ Initial active lever (0:right 1:left)
+           SET A(1)   = 1;       \ FR for active lever
+           SET A(2)   = 150;     \ Number of trials
+           SET A(3)   = 3;       \ Duration of lever cue light (sec)
+           SET A(4)   = 3;       \ Duration of green cue light (sec)
+           SET A(5)   = 8;       \ Time-out duration (sec)
+           SET A(6)   = 8;       \ ITI duration (sec)
+           SET A(7)   = 5;       \ Consecutive active presses to reverse
+           SET E(G) = -987.987, F(G) = -987.987 ---> S2
+  S2,
+    #START: ADD C(7); Z1 ---> S3
+  S3,
+    #Z3: SET B(0) = A(6) * 1";
+         SET E(G) = 16, F(G) = H;
+         SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+  S4,
+    B(0)#T: Z1; ADD C(7);
+            SET E(G) = 36, F(G) = H;
+            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+
+
+
+
+
+S.S.2,   \ Levers extend, retract
+  S1,
+    #Z1!#Z5: ON ^RightLevOut, ^LeftLevOut;
+             SET E(G) = 3, F(G) = H; ADD G;
+             SET E(G) = 4, F(G) = H;
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z2!#Z4: OFF ^RightLevOut, ^LeftLevOut;
+             SET E(G) = 11, F(G) = H; ADD G;
+             SET E(G) = 12, F(G) = H;
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+
+
+S.S.3,   \ Stimulus lights (lever cue lights)
+   S1,
+     #Z2: SET B(1) = A(3) * 1" ;
+          IF A(0) = 0 [@RIGHT, @LEFT]
+          @RIGHT: ON ^RightLt; OFF ^LeftLt;
+                  SET E(G) = 17, F(G) = H;
+                  SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+          @LEFT:  ON ^LeftLt; OFF ^RightLt;
+                  SET E(G) = 18, F(G) = H;
+                  SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+  S2,
+    B(1)#T: OFF ^RightLt, ^LeftLt;
+            SET E(G) = 21, F(G) = H;
+            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    B(1)#T: OFF ^LeftLt, ^RightLt;
+            SET E(G) = 22, F(G) = H;
+            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.4,   \ Green cue light
+   S1,
+     #Z4: SET B(2) = A(4) * 1" ;
+          ON ^GreenLight;
+          SET E(G) = 33, F(G) = H;
+          SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+   S2,
+     B(2)#T: OFF ^GreenLight;
+             SET E(G) = 34, F(G) = H;
+             SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.5,   \ Houselight
+  S1,
+    #Z1!#Z5: ON ^HouseLt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z2!#Z4: OFF ^HouseLt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+
+S.S.6,   \ Pellet delivery
+  S1,
+    #Z2: ON ^Feeder; ADD Y; SET E(G) = 5, F(G) = H;
+         SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    0.2": OFF ^Feeder; Z3 ---> S1
+
+
+
+
+
+
+S.S.7,   \  Lever press fixed ratio
+  S1,
+    #Z1!#Z5: SET C(0) = A(1);
+             IF A(0) = 0 [@RIGHT, @LEFT]
+             @RIGHT: ---> S2
+             @LEFT: ---> S3
+  S2,
+    1#R^RightLevIn: SUB C(0);
+                    IF C(0) <= 0 [@DONE, @NOTDONE]
+                    @DONE: Z2 ---> S4
+                    @NOTDONE: ---> S2
+    1#R^LeftLevIn: Z4 ---> S1
+  S3,
+    1#R^LeftLevIn: SUB C(0);
+                   IF C(0) <= 0 [@DONE, @NOTDONE]
+                   @DONE: Z2 ---> S4
+                   @NOTDONE: ---> S3
+    1#R^RightLevIn: Z4 ---> S1
+  S4,
+    #Z3: ---> S1
+
+
+
+
+
+
+S.S.8,   \ Individual lever presses recorded and cumulated, send reversal signal
+  S1,
+    #Z1!#Z5: SET C(6) = H;
+             IF A(0) = 0 [@RIGHT, @LEFT]
+             @RIGHT: ---> S2
+             @LEFT: ---> S3
+  S2,
+    1#R^RightLevIn: ADD C(1), J(C(3)), C(4);
+                    SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+                    IF C(4) >= A(7) [@REVERSE, @NOREVERSE]
+                    @REVERSE: ---> S5
+                    @NOREVERSE: ---> SX
+    1#R^LeftLevIn: ADD C(2), I(C(3)); SET C(4) = 0;
+                   SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    #Z2!#Z4: ---> S6
+  S3,
+    1#R^RightLevIn: ADD C(1), I(C(3)); SET C(4) = 0;
+                    SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+    1#R^LeftLevIn: ADD C(2), J(C(3)), C(4);
+                   SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+                   IF C(4) >= A(7) [@REVERSE, @NOREVERSE]
+                   @REVERSE: ---> S4
+                   @NOREVERSE: ---> SX
+    #Z2!#Z4: ---> S7
+  S4,
+    #Z3: Z6; SET E(G) = 35, F(G) = H;
+         SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G; 
+         SET T(C(3)) = H, R(C(3)) = H - C(6), C(6) = H, A(0) = 0, C(4) = 0; ADD C(3)  ---> S6
+  S5,
+    #Z3: Z6; SET E(G) = 35, F(G) = H;
+         SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G; 
+         SET T(C(3)) = H, R(C(3)) = H - C(6), C(6) = H, A(0) = 1, C(4) = 0; ADD C(3) ---> S7
+  S6,
+    #Z1!#Z5: ---> S2
+  S7,
+    #Z1!#Z5: ---> S3
+
+
+
+
+
+S.S.9,   \  Headentry recording
+  S1,
+    #START: ---> S2
+  S2,
+    1#R^HeadEntry: ADD C(5);
+                   SET E(G) = 7, F(G) = H;
+                   SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+
+S.S.10,   \  Time-out timer
+  S1,
+    #Z4: SET B(3) = A(5) * 1";
+         SET E(G) = 6, F(G) = H;
+         SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    B(3)#T: Z5; ADD C(7);
+            SET E(G) = 23, F(G) = H;
+            SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.11,   \ Display
+  S1,
+    #START: ---> S2
+  S2,
+    0.2": SHOW 1,        Trial: , C(7);
+          SHOW 2,        Right presses: , C(1);
+          SHOW 3,        Left presses: , C(2);
+          SHOW 4,        Head entries: , C(5);
+
+          SHOW 11+(15*C(3)),  Active presses: , J(C(3));
+          SHOW 12+(15*C(3)),  Inactive presses: , I(C(3)) ---> S2
+
+    #Z6: IF C(3) > 0 [@DISPLAY, @NODISPLAY]
+         @DISPLAY: SHOW 6+(15*C(3)),   Reversals: , C(3);
+                   SHOW 8+(15*C(3)),   Rev Time Stamp: , T(C(3)-1)/100;
+                   SHOW 9+(15*C(3)),   Time to reverse: , R(C(3)-1)/100 ---> S2
+         @NODISPLAY: ---> S2
+
+
+
+
+
+
+S.S.12,    \ Session timer and termination
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF C(7)>A(2) [@END, @NOTEND]
+           @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                 SET I(C(3)) = -987.987;
+                 SET J(C(3)) = -987.987;
+                 SET R(C(3)) = -987.987;
+                 SET T(C(3)) = -987.987;
+                 SUB C(7) ---> STOPABORTFLUSH
+           @NOTEND: ---> S2

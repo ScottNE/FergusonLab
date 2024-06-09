@@ -1,0 +1,551 @@
+\
+\ ******************************
+\ *                            *
+\ *   BASE: SF_TD_COKED_FR     *
+\ *                            *
+\ ******************************
+\ Scott Ng-Evans (2016)
+\
+\
+\ Tess Donckels: "Left Lever - Cue Light Self-Administration. Rats will be trained to press
+\                 for IV infusions of saline, cocaine, or heroin (50uL delivered over 2.8 sec).
+\                 The beginning of the session will be indicated by insertion of the left lever
+\                 into the chamber. Each press of the left lever will result in an infusion and
+\                 the illumination of the cue light above the lever for 20 seconds, during which
+\                 time responses will not result in additional drug delivery (infusion should
+\                 start when the cue light turns on). The infusions will be available on an FR1
+\                 schedule. The end of the session will be indicated by retraction of the lever.
+\                 No houselight will be illuminated during these sessions."
+\
+\
+\
+\ Revisions:
+\
+\  3-2017 - Susan Ferguson: "We wanted to start doing the within-session threshold procedure in
+\                            our self-administration rats...
+\                            The procedure is as outlined in the attached papers - we would use
+\                            a cue light during the infusion period (no tone) and have no timeout
+\                            period following the infusion period (active lever responses during
+\                            the infusion period would be recorded but not have any consequences).
+\                            We will be doing this in Tess’s polydrug use rats as well as standard
+\                            rats, so it would be good to have the option of not having an inactive
+\                            lever out."
+\
+\                            Later: "It turns out we have the “fancy” variable speed syringe pumps,
+\                            which are manually set to deliver a specific volume/rate and this can’t
+\                            be overridden by a program. So with these pumps we can’t do the within-
+\                            session procedure - instead we will have to do the between-sessions method
+\                            from the attached paper (2 hour sessions, each day a different infusion
+\                            volume/rate that we manually set). Eventually I would like to get the
+\                            standard pumps to do the within-session. So not sure if it is possible to
+\                            have one program that would give options for either type of session - if
+\                            not it makes sense to focus on the between-sessions method now."
+\
+\          Training phase from Oleson and Roberts, Neuropsychopharmacology, 2009 February; 34(3): 796-804:
+\                           "The start of a session was signaled by the extension of a lever into the
+\                            experimental chamber. During acquisition and during FR and PR training sessions
+\                            cocaine was infused as a bolus of about 0.1 ml of cocaine solution over
+\                            approximately 4-5 seconds (adjusted according to body weight). Doses
+\                            (0.75 and 1.5 mg/kg/inf) were manipulated by adjusting the concentration of
+\                            cocaine solution (2.5 and 5.0 mg/ml, respectively). Following each response
+\                            the lever was retracted and a light was illuminated for a 20-second time-out period.
+\
+\                            During the acquisition phase all animals received access to cocaine (0.75 mg/kg/infusion)
+\                            on an FR1 schedule of reinforcement during daily training sessions, which terminated after
+\                            a maximum of 20 infusions or a period of 6 hours had elapsed."
+\
+\
+\         Threshold phase from Oleson and Roberts, Neuropsychopharmacology, 2009 February; 34(3): 796–804:
+\                           "During threshold testing the dose was manipulated by adjusting the pump duration as
+\                            described below.
+\                            Rats were tested through a descending series of unit injection doses reinforced on
+\                            an FR1 reinforcement schedule during daily 2 hr sessions. Threshold was defined as
+\                            the lowest dose that maintained daily intake. The dose was manipulated by holding
+\                            the concentration of the drug constant and manipulating the pump duration. Pump
+\                            times were decreased each day along a quarter-log scale as follows: 3156, 1780, 1000,
+\                            562, 310, 178, 100, 56, 31, 18 and 10 msec. A time-out period corresponded only to
+\                            the duration of the pump infusion."
+\
+\
+\  3-2018 - for Alec Gisbson(JN Lab) - Adapted to within session dose decrementing procedure:
+\             From Oleson, Richardson and Roberts. Psychopharmacology (Berl). 2011 March ; 214(2): 567–577.  :
+\             "Following acquisition, animals were given access to cocaine in the within-session threshold
+\             procedure. Pump times were decreased across 11 intervals according to a quarter-log scale
+\             as follows: 3156, 1780, 1000, 562, 310, 178, 100, 56, 31, 18, and 10 ms. A timeout period
+\             corresponded only to the duration of the pump infusion. The calculated dose equivalents (5
+\             mg/ml X 1.6 ml/min X pump duration) are as follows: 421, 237, 133, 75, 41, 24, 13, 7.5, 4.1,
+\             2.4, and 1.3µg/ infusion. See supplemental material of Oleson and Roberts (2009) for a full
+\             characterization of this approach and validation that the appropriate quantity of drug is
+\             delivered across all pump durations. The duration of the pump infusion was the only
+\             experimenter-imposed inter-injection period. The available cocaine dose decreased every 10 min"
+\
+\           - Changed to InSessionDecDose
+\
+\
+\  5-2018 - A. Gibson requested that tone be added. The choice to use tone was added to the menu (A(20)).
+\
+\  8-2018 - Added state set to capture all lever presses because some inactive ones could possibly be
+\            missed in FR state set. Added codes 1 and 2 for generic right and left lever presses.
+\
+\  1-2019 - Changed doses based on Kawa, Bentzley and Robinson, Psychopharmacology (Berl). 2016 October;
+\            233(19-20): 3587–3602.
+\
+\  1-2019 - Ferguson lab uses a 'PumpOff' signal since they have the pumps that have the infusion time
+\            setting on a front dial; they therefore dial in a time longer than any infusion
+\            would be and use the 'PumpOff' signal in conjuction with my pump controller box to
+\            programmatically shut the pump off. I had to adjust the time that this 'PumpOff' signal
+\            was on to at least 200 msec or it is not 'seen' by the pump. In this program it is set
+\            to 300 msec to assure it will be read.
+\
+\
+\
+\
+
+
+
+\ Input Constants
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^SyringePumpOn  = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+^SyringePumpOff = 14
+
+
+
+
+\ Z-Pulses
+\
+\ Z1 infusion and cues over, drug available
+\ Z2 drug delivery initiation
+\ Z3 check required variable entry tally to start
+\ Z4 start signal once information is entered
+
+
+\ Variable Definitions:
+
+\ A(0)  = Active lever (0:right 1:left)
+\ A(1)  = Drug infusion time (sec) as set on pump   \ *** Within Session decrement follows list as in Olseon and Roberts
+\ A(2)  = Post-infusion time-out length (sec)       \ *** Not used in threshold phase
+\ A(3)  = Max session length in hours               \ *** Not used in threshold phase
+\ A(4)  = Fixed ratio - FR
+\ A(5)  = Session time displayed in minutes
+\ A(6)  = Dummy variable for Wizard first-line bug
+\ A(7)  = Dummy variabe for menu display
+\ A(8)  = Maximum number of drug infusions to end session
+\ A(9)  = Houselight during the session (0:off 1:on)
+\ A(10) = Extend both levers (0:Both 1:only active)
+\ A(11) = Use white cue lights or green light (0:White 1:Green)
+\ A(12) = Dose per infusion (mg cocaine/kg)          \ *** for within session, dose decrements within infusion
+\ A(13) = Animal weight (kg)
+\ A(14) = How often to change dose (min)
+\ A(15) = A(14) converted to system time
+\ A(16) = Subscript for D list
+\ A(17) = Current infusion time from D list in seconds (determines dose)
+\ A(18) = A(17) in system time
+\ A(19) = Current number of dose decrements
+\ A(20) = Use tone during infusion? (0:no 1:yes)
+\ A(21) = Number of head entries
+\
+\ B(0)  = Active FR right presses
+\ B(1)  = Active FR left presses
+\ B(2)  = Right presses during pump activation
+\ B(3)  = Left presses during pump activation
+\
+\ C(0) = Calculated timeout time (sec) - same as infusion time in threshold phase
+\ C(1) = Calculated infusion time (sec)                 **** For within session decrement this is A(18)
+\ C(2) = Cumulation to check if all required variables are entered
+\
+\ D()  = List of infusion times in seconds
+\
+\ E = event identity stamp
+\       1  - Right lever press
+\       2  - Left lever press
+\       3  - Right active FR press
+\       4  - Left active FR press
+\       5  - Infusion start
+\       6  - Infusion end
+\       7  - Food tray head entry
+\      10  - Right lever extends
+\      11  - Left lever extends
+\      12  - Right lever retracts
+\      13  - Left lever retracts
+\      36  - Right press during infusion
+\      37  - Left press during infusion
+\      38  - Right lever cue light on
+\      39  - Left lever cue light on
+\      40  - Right lever cue light off
+\      41  - Left lever cue light off
+\      42  - Houselight on
+\      43  - Houselight off
+\      44  - Start of timeout period
+\      45  - End of timeout period
+\      50  - Green cue light on
+\      51  - Green cue light off
+\      52  - Decrement dose
+\      53  - Tone on
+\      54  - Tone off
+\     100  - End session marker
+\
+\ G = Event counter
+\ H = Session timer
+\
+\ I = List doses (ug/infusion)
+\
+\ L = FR countdown variable for left
+\ R = FR countdown variable for right
+\ T = Event time stamp
+\ Y = number of reinforcers (infusions)
+
+
+LIST D = 8.175, 4.597, 2.585, 1.454, .818, .460, .259, .145, .082, .046, .026
+LIST I = 383.5, 215.6, 121.3, 68.2, 38.3, 21.6, 12.1, 6.8, 3.8, 2.2, 1.2
+
+
+DIM A = 50
+DIM B = 10
+DIM C = 10
+DIM E = 50000
+DIM T = 50000
+
+
+
+
+VAR_ALIAS -------------------------------------------------------------------- = A(26)
+VAR_ALIAS Fixed Ratio = A(4)
+VAR_ALIAS Active lever (0:right 1:left) = A(0)
+VAR_ALIAS Extend both levers (0:Both 1:only active) = A(10)
+VAR_ALIAS Houselight during session (0:OFF 1:ON) = A(9)
+VAR_ALIAS Use tone during infusion (0:no 1:yes) = A(20)
+VAR_ALIAS Time between dose changes (min) = A(14)
+VAR_ALIAS Animal weight (kg) = A(13)
+VAR_ALIAS ------------- INFUSION DURATIONS(SEC) -------------- = A(26)
+VAR_ALIAS Duration 1  = D(0)
+VAR_ALIAS Duration 2  = D(1)
+VAR_ALIAS Duration 3  = D(2)
+VAR_ALIAS Duration 4  = D(3)
+VAR_ALIAS Duration 5  = D(4)
+VAR_ALIAS Duration 6  = D(5)
+VAR_ALIAS Duration 7  = D(6)
+VAR_ALIAS Duration 8  = D(7)
+VAR_ALIAS Duration 9  = D(8)
+VAR_ALIAS Duration 10 = D(9)
+VAR_ALIAS Duration 11 = D(10)
+VAR_ALIAS ------------- DOSES(ug/infusion) -------------- = A(26)
+VAR_ALIAS Dose 1   = I(0)
+VAR_ALIAS Dose 2   = I(1)
+VAR_ALIAS Dose 3   = I(2)
+VAR_ALIAS Dose 4   = I(3)
+VAR_ALIAS Dose 5   = I(4)
+VAR_ALIAS Dose 6   = I(5)
+VAR_ALIAS Dose 7   = I(6)
+VAR_ALIAS Dose 8   = I(7)
+VAR_ALIAS Dose 9   = I(8)
+VAR_ALIAS Dose 10  = I(9)
+VAR_ALIAS Dose 11  = I(10)
+
+
+
+\\  These are not used in the Threshold phase of the within-session procedure
+\\VAR_ALIAS Max session length (hour) = A(3)
+\\VAR_ALIAS Drug infusion time on pump (sec) = A(1)  \\ **** Must be entered as set on pump *** *** Within Session decrement follows list as in Olseon and Roberts
+\\VAR_ALIAS Dose per infusion (mg/kg) = A(12)
+\\VAR_ALIAS Max number of drug infusions = A(8)
+\\VAR_ALIAS Time-out length (sec) = A(2)   \\ **** NO timeout for threshold phase  - only the time the pump is on
+\\\VAR_ALIAS Use white cue lights or green light (0:White 1:Green) = A(11)
+
+
+
+VAR_ALIAS ------------------------------------------------------------------- = A(27)
+
+
+
+
+
+\\S.S.1,  \ Check that pump duration was entered
+\\  S1,
+\\    #START: IF A(1) = 0 [@HALT, @GO]
+\\            @HALT: SHOW 1, ENTER TIME ON PUMP!! , A(1) ---> S2
+\\            @GO: CLEAR 1,200; Z3; ADD C(2) ---> SX
+\\  S2,
+\\    0.1": IF A(1) = 0 [@HALT, @GO]
+\\           @HALT: SHOW 1, ENTER TIME ON PUMP!! , A(1) ---> S2
+\\           @GO: CLEAR 1,200; Z3; ADD C(2) ---> S1
+
+
+
+
+\\S.S.2,  \ Check that dose per infusion was entered
+\\  S1,
+\\    #START: IF A(12) = 0 [@HALT, @GO]
+\\            @HALT: SHOW 1, ENTER DOSE PER INFUSION!! , A(12) ---> S2
+\\            @GO: CLEAR 1,200; Z3; ADD C(2) ---> SX
+\\  S2,
+\\    0.1": IF A(12) = 0 [@HALT, @GO]
+\\          @HALT: SHOW 1, ENTER DOSE PER INFUSION!! , A(12) ---> S2
+\\          @GO: CLEAR 1,200; Z3; ADD C(2) ---> S1
+
+
+
+
+S.S.3,  \ Check that animal weight was entered
+  S1,
+    #START: IF A(13) = 0 [@HALT, @GO]
+            @HALT: SHOW 1, ENTER ANIMAL WEIGHT!! , A(13) ---> S2
+            @GO: CLEAR 1,200; Z3; ADD C(2) ---> SX
+  S2,
+    0.1": IF A(13) = 0 [@HALT, @GO]
+          @HALT: SHOW 1, ENTER ANIMAL WEIGHT!! , A(13) ---> S2
+          @GO: CLEAR 1,200; Z3; ADD C(2) ---> S1
+
+
+
+
+
+S.S.4,  \ Check to see if all variables entered
+  S1,
+    #Z3: IF C(2) >= 1 [@GO, @WAIT]
+         @GO: Z4 ---> SX
+         @WAIT: ---> SX
+
+
+
+
+
+S.S.5,  \ Default set-up and time-out timing
+  S1,
+    0": SET A(0)  = 0;         \Active lever (0:right 1:left)
+        SET A(2)  = 0;         \Time-out length (sec)      **** No timeout in threshold phase ****
+        SET A(3)  = 2;         \Maximum session length in hours
+        SET A(4)  = 1;         \Fixed ratio - FR
+        SET A(9)  = 0;         \Houselight during the session (0:OFF 1:ON)
+        SET A(10) = 1;         \Extend both levers (0:Both 1:only active)
+        SET A(11) = 0;         \Use white cue lights or green light (0:White 1:Green)
+        SET A(13) = 0;         \Animal weight in kg
+        SET A(14) = 10;        \Time between dose decrements in minutes
+        SET A(20) = 1;         \Use tone during time-out (0:no 1:yes)
+
+        \\\\\   NOT USED IN THRESHOLD PHASE OF WITHIN-SESSION PROCEDURE
+        SET A(1)  = 0;         \Drug infusion time (sec)   **** Must be entered as set on pump ****
+        SET A(8)  = 20;        \Maximum number of drug infusions to end session
+        SET A(12) = 0;         \Dose per infusion (mg/kg)
+        \\\\\
+
+        SET T(0)  = -987.987; SET E(0) = -987.987;
+        ON ^Fan ---> S2
+  S2,
+    #Z4: ---> S3
+  S3,
+    #Z2: SET T(G) = H, E(G) = 44; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S4
+  S4,
+    #Z1: SET T(G) = H, E(G) = 45; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+
+
+
+
+
+S.S.6,  \ Decrement dose
+  S1,
+    #Z4: ADD A(19);
+         IF A(19) < 12 [@CONTINUE, @SESSIONENDS]
+         @CONTINUE: SET A(15) = A(14) * 1';
+                    LIST A(17) = D(A(16)); SET A(18) = A(17) * 1" ---> S2
+         @SESSIONENDS: ---> S1
+  S2,
+    A(15)#T: ADD A(19);
+             IF A(19) < 12 [@CONTINUE, @SESSIONENDS]
+             @CONTINUE: SET T(G) = H, E(G) = 52; ADD G; SET T(G) = -987.987, E(G) = -987.987;
+                        LIST A(17) = D(A(16)); SET A(18) = A(17) * 1" ---> S2
+             @SESSIONENDS: ---> S1
+
+
+
+
+
+S.S.7,  \ Individual active presses and FR
+  S1,
+    #Z4!#Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+             @RIGHT: SET R = A(4) ---> S3
+             @LEFT: SET L = A(4) ---> S2
+  S2,
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 4; ADD G, B(1); SET T(G) = -987.987, E(G) = -987.987;
+                     SUB L; IF L <= 0 [@FRDONE, @FRNOTDONE]
+                            @FRDONE: Z2 ---> S1
+                            @FRNOTDONE: ---> S2
+  S3,
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 3; ADD G, B(0); SET T(G) = -987.987, E(G) = -987.987;
+                      SUB R; IF R <= 0 [@FRDONE, @FRNOTDONE]
+                             @FRDONE: Z2 ---> S1
+                             @FRNOTDONE: ---> S3
+
+
+
+
+
+S.S.8,  \ Capture all lever presses
+  S1,
+    #Z4: ---> S2
+  S2,
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 1; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 2; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.9,  \ Responses during infusion
+  S1,
+    #Z2: ---> S2
+  S2,
+    #Z1: ---> S1
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 36; ADD G, B(2); SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 37; ADD G, B(3); SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.10,  \ Head entry detector
+  S1,
+    #Z4: ---> S2
+  S2,
+    1#R^HeadEntry: SET T(G) = H; SET E(G) = 7; ADD G, A(21); SET T(G) = -987.987; SET E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.11,  \ Infusion - the SyringePumpOff signal makes use of control box on pumps with dial-in
+         \             timing and speed controls - it shuts the pump down independent of those
+         \             settings
+  S1,
+    #Z2: ON ^SyringePumpOn; SET T(G) = H, E(G) = 5; ADD G, Y; SET T(G) = -987.987, E(G) = -987.987 ---> S2
+  S2,
+    A(18)#T: OFF ^SyringePumpOn; ON ^SyringePumpOff; SET T(G) = H, E(G) = 6; ADD G;
+             SET T(G) = -987.987, E(G) = -987.987 ---> S3
+  S3,
+    0.3": Z1; OFF ^SyringePumpOff ---> S1
+
+
+
+
+
+S.S.12,  \ Tone
+  S1,
+    #Z2: IF A(20) = 0 [@NOTONE, @TONE]
+         @NOTONE: ---> SX
+         @TONE: ON ^Sonalert; SET T(G) = H, E(G) = 53; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z1: IF A(20) = 0 [@NOTONE, @TONE]
+         @NOTONE: ---> SX
+         @TONE: OFF ^Sonalert; SET T(G) = H, E(G) = 54; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.13,  \ House light
+  S1,
+    #Z4: IF A(9) = 0 [@HLOFF, @HLON]
+         @HLOFF: ---> SX
+         @HLON: ON ^HouseLight; SET T(G) = H, E(G) = 42; ADD G; SET T(G) = -987.987; SET E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.14,   \ Lever Cue lights
+  S1,
+    #Z2: IF A(0) = 0 [@RIGHT, @LEFT]
+         @RIGHT: IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: ON ^GreenLight;
+                         SET T(G) = H, E(G) = 50; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: ON ^RightCueLight; OFF ^LeftCueLight;
+                         SET T(G) = H, E(G) = 38; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @LEFT:  IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: ON ^GreenLight;
+                         SET T(G) = H, E(G) = 50; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: ON ^LeftCueLight; OFF ^RightCueLight;
+                         SET T(G) = H; SET E(G) = 39; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+         @RIGHT: IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: OFF ^GreenLight;
+                         SET T(G) = H, E(G) = 51; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: OFF ^RightCueLight, ^LeftCueLight;
+                         SET T(G) = H, E(G) = 40; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @LEFT:  IF A(11) > 0 [@GREEN, @WHITE]
+                 @GREEN: OFF ^GreenLight;
+                         SET T(G) = H, E(G) = 51; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                 @WHITE: OFF ^LeftCueLight, ^RightCueLight;
+                         SET T(G) = H; SET E(G) = 41; ADD G; SET T(G) = -987.987, E(G) = -987.987  ---> SX
+
+
+
+
+
+S.S.15,   \ Levers extend
+  S1,
+    #Z4: IF A(10) > 0 [@ONELEVER, @TWOLEVERS]
+         @ONELEVER: IF A(0) = 0 [@RIGHT, @LEFT]
+                    @RIGHT: ON ^RightLeverOut; SET T(G) = H, E(G) = 10; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                    @LEFT: ON ^LeftLeverOut; SET T(G) = H, E(G) = 11; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+         @TWOLEVERS: ON ^RightLeverOut, ^LeftLeverOut;
+                     SET T(G) = H, E(G) = 10; ADD G; SET T(G) = H, E(G) = 11; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.16,  \ Session time display
+  S1,
+    #Z4: SHOW 2, SESS TIME(MIN): , A(5)/60 ---> S2
+  S2,
+    1": ADD A(5); SHOW 2, SESS TIME(MIN): , A(5)/60 ---> S2
+
+
+
+
+
+S.S.17,  \ Display
+  S1,
+    #Z4: ---> S2
+  S2,
+    .2": SHOW 1,  INFUSION TIME(sec): , A(17);
+         SHOW 3,  INFUSIONS: , Y;
+         SHOW 6,  ACTIVE RT: , B(0);
+         SHOW 7,  ACTIVE LT: , B(1);
+         SHOW 8,  ANIMAL WEIGHT(kg) : , A(13);
+         SHOW 11, RT DURING INFUSION : , B(2);
+         SHOW 12, LT DURING INFUSION : , B(3) ---> S2
+
+
+
+
+
+S.S.18,  \ Session timer and termination
+  S1,
+    #Z4: ---> S2
+  S2,
+    0.01": ADD H;
+           IF (A(19) < 12) [@NOEND, @YESEND]
+           @NOEND: ---> S2
+           @YESEND: SET T(G) = H, E(G) = 100; SET T(G+1) = -987.987, E(G+1) = -987.987;
+                    SHOW 1,  INFUSION TIME(sec): , A(17);
+                    SHOW 3,  INFUSIONS: , Y;
+                    SHOW 6,  ACTIVE RT: , B(0);
+                    SHOW 7,  ACTIVE LT: , B(1);
+                    SHOW 8,  ANIMAL WEIGHT(kg) : , A(13);
+                    SHOW 11, RT DURING INFUSION : , B(2);
+                    SHOW 12, LT DURING INFUSION : , B(3) ---> STOPABORTFLUSH
+

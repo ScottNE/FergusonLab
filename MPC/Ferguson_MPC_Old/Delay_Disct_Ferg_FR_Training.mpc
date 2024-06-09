@@ -1,0 +1,216 @@
+\
+\
+\  Fixed Ratio Training Phase: Delay Discounting
+\
+\  Scott Ng-Evans 2012
+\
+\
+\ From Rudolf N. Cardinal, Trevor W. Robbins,
+\      Barry J. Everitt, "The effects of d-amphetamine, 
+\      chlordiazepoxide, α-flupenthixol and behavioural 
+\      manipulations on choice of signalled and unsignalled
+\      delayed reinforcement in rats", Psychopharmacology (2000) 152:362-375
+\      "Subjects were first trained under a fixed-ratio 1 schedule to a 
+\       criterion of 50 presses in 30 min, first for the left lever and 
+\       then for the right."
+\
+\ For the laboratory of Susan Ferguson
+\
+\
+
+\ Revisions:
+\
+
+\
+\
+\
+\
+\
+\   OUTPUTS
+\
+   ^leftlevout  = 1
+   ^rightlevout = 2
+   ^feeder     	= 3
+   ^leftlt     	= 4
+   ^rightlt    	= 5
+   ^traylt     	= 6
+   ^houselt    	= 7
+   ^tone       	= 8
+   ^pump       	= 9
+   ^fan        	= 10
+
+
+\
+\   INPUTS
+\
+   ^leftlevin  	= 1
+   ^rightlevin 	= 3
+   ^headentry   = 5
+\  
+\
+
+
+
+\ Z-PULSES
+
+\ Z1  - Start trial 
+\ Z2  - Signal for reward delivery
+\ Z3  - Reward delivery over
+
+
+
+\ VARIABLES
+
+\ A(0)  = Active lever (0:Right 1:Left)
+\ A(1)  = FR for active lever
+\ A(2)  = Maximum session duration (min)
+\ A(3)  = Maximum pellets to be delivered
+\
+\ C(0) = Trial number
+\ C(1) = Number of lever presses
+\ C(2) = Number of head entry
+\ C(3) = Number of pellets delivered
+\ 
+\ 
+\ E = Event stamps
+\     1 - Right lever press
+\     2 - Left lever press
+\     3 - Right lever extends
+\     4 - Left lever extends
+\     5 - Pellet delivery
+\     7 - Food hopper head entry
+\     8 - House light turns on
+\     9 - House light turns off
+\    25 - Tray light turns ON
+\    26 - Tray light turns OFF
+\   100 - Session ends, data saved
+\
+\ F = Time stamps
+\ G = Counter for event and time stamps
+\ H = Session timer
+
+
+
+VAR_ALIAS Active lever (0:right 1:left) = A(0)
+VAR_ALIAS FR for active lever = A(1)
+VAR_ALIAS Maximum session duration (min) = A(2)
+VAR_ALIAS Maximum number of pellets = A(3)
+
+DIM A = 50
+DIM C = 50
+DIM E = 20000
+DIM F = 20000
+
+
+
+
+S.S.1,    \ Session setup and timing
+  S1,
+    0": SET A(0) = 0, A(1) = 1, A(2) = 30, A(3) = 50;
+        SET E(G) = -987.987, F(G) = -987.987 ---> S2
+  S2,
+    #START: SET C(0) = 1 ---> S3
+  S3,
+    #Z3: ---> S4
+  S4,
+    1": Z1; ADD C(0) ---> S3
+
+
+
+
+S.S.2,   \ Levers extend
+  S1,
+    #START: IF A(0) = 0 [@RIGHT, @LEFT]
+            @RIGHT: ON ^rightlevout; SET E(G) = 3, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+            @LEFTT: ON ^leftlevout; SET E(G) = 4, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+S.S.3,   \ Houselight
+  S1,
+    #START: ON ^houselt, ^fan; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+S.S.4,   \ Traylight
+  S1,
+    #Z2: ON ^traylt; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    #Z1: OFF ^traylt; SET E(G) = 26, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.5,   \ Pellet delivery
+  S1,
+    #Z2: ON ^feeder; ADD C(3); SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+  S2,
+    0.1": OFF ^feeder; Z3 ---> S1
+
+
+
+
+S.S.6,   \  Lever press fixed ratio
+  S1,
+    #START!#Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+                @RIGHT: ---> S2
+                @LEFT:  ---> S4
+  S2,
+    A(1)#R^rightlevin: Z2---> S1
+  S4,
+    A(1)#R^leftlevin: Z2 ---> S1
+
+
+
+
+S.S.7,   \ Individual lever presses recorded and cumulated
+  S1,
+    #START!#Z1: IF A(0) = 0 [@RIGHT, @LEFT]
+                @RIGHT: ---> S2
+                @LEFT:  ---> S3
+  S2,
+    1#R^rightlevin: ADD C(1); SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  S3,
+    1#R^leftlevin: ADD C(1); SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+
+S.S.8,   \  Headentry recording and dependencies
+  S1,
+    #START: ---> S2
+  S2,         
+    1#R^headentry: ADD C(2); SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+
+
+
+
+S.S.9,   \ Display 
+  S1,
+    0.5": SHOW 1, Trial: , C(0);
+          SHOW 2, Elapsed minutes: , H/6000;
+          SHOW 3, Lever Presses: , C(1);
+          SHOW 4, Head Entries: , C(2);
+          SHOW 5, Rewards: , C(3) ---> S1
+
+
+
+
+S.S.10,    \ Session timer
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H; IF (H > (A(2)*6000)) OR (C(3) >= A(3)) [@END, @NOTEND]
+           @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+                 SHOW 1, Trial: , C(0);
+                 SHOW 2, Elapsed minutes: , H/6000;
+                 SHOW 3, Lever Presses: , C(1);
+                 SHOW 4, Head Entries: , C(2);
+                 SHOW 5, Rewards: , C(3) ---> STOPABORTFLUSH 
+           @NOTEND: ---> S2
+
+
+

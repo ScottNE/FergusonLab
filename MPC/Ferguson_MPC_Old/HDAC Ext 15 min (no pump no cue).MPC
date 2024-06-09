@@ -1,0 +1,75 @@
+\  Self Administration
+\  Self Administration on an Fr-1 Time-Out 20 Schedule
+\  Based on procedure of Dr. Osnat Ben-Shahar, Psychology Dept. UCSB
+\  Version 1
+
+\  Constants are declared here and used through out the
+\  the procedure to clarify input and output functions:
+
+^LeftLever  = 1       \  List all the outputs
+^RightLever = 2
+^Feeder = 3    \  
+^LeftStimLight = 4            \  
+^RightStimLight = 5        \  
+^Shock = 6
+^HouseLight = 7
+^Pump = 8
+
+^LLeverResponse = 1     \  List all the inputs in the SG-716 Hardware 
+^LLeverPosition = 2     \  of each of the operant boxes.  
+^RLeverResponse = 3      \  
+^RLeverPosition = 4        \   
+                    \  
+
+
+\  Variables
+
+\  Array A = Responses on the right lever.
+\  Array B  = Responses on the left lever.
+\  Array C = Number of reinforces.
+\    D = Responses on Left (inactive) Lever
+\    E = Time, number of minutes passed since the start of the session
+\    F = Total number of responses on Right (active) Lever
+\    G = Total number of responses of left lever
+\    H = Total number of responses on the trigger
+\  Dimension Arrays
+
+DIM A = 60
+DIM B = 60
+DIM C = 60
+
+PRINTVARS = C
+PRINTOPTIONS = 80, FORMFEEDS
+PRINTFORMAT = 6.1
+
+\  ****************  Main Program  ****************
+
+S.S.1,  \  Extend right levers when procedure "starts" and give one food
+        \  pellet and turn rightstimlight for 1 sec when detecting right
+        \  lever press
+
+S1,
+   #Start:ON ^RightLever, ^LeftLever --->S2
+S2,
+   #R^RLeverResponse:ADD A(E),C(E),F,G;--->S3
+
+S3,   
+   #R^RLeverResponse:ADD A(E),F --->SX
+
+S.S.2,  \  Record Responses on Left Lever
+
+S1,
+   #R^LLeverResponse:ADD B(E), G --->SX
+
+
+S.S.3,  \Record Time and Terminate Program after 15 minutes
+S1,
+  #START: --->S2
+S2,
+  1': ADD E; SHOW 1,Left Respn,G ,2,Right Resp,F ,3,realtime,E;
+  If E=15 [@end,@continue]
+    @end: --->STOPABORTFLUSH
+    @continue: --->SX
+
+
+

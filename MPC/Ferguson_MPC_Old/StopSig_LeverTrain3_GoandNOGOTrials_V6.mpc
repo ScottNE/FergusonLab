@@ -1,0 +1,477 @@
+\
+\ Ng-Evans 2012
+\ ************************************
+\ ***  Eagle and Robbins, 2003     ***
+\ ***  Behavioral Neuroscience,    ***
+\ ***  Vol. 117, No. 6, 1302-1317  ***
+\ ***                              ***
+\ ***  Stop-signal task            ***
+\ ***  Training phase 3:           ***
+\ ***  Lever Training 3,           ***
+\ ***  Go and No Go Trials         ***
+\ ***                              ***
+\ ************************************
+\
+\
+
+\ Summary: "We aimed to train rats to a high level of accuracy in performance in both 
+\           stop and go trials. Rats naturally tended to bias their performance toward 
+\           either stopping or going on this task, so over the course of this training 
+\           period we tried several training manipulations before we found the best 
+\           method of training on this task. The best performance levels were achieved 
+\           using 20% stop trials in a session. As the rats showed natural variability in 
+\           performance, speed of response and ability to wait, the best level of task 
+\           performance for each rat (> 70% accuracy on both stop and go trials) was 
+\           achieved by using a different LH for each rat. Final stable LHs ranged 
+\           between 0.9 and 1.8 s and were kept constant for each rat throughout the 
+\           experiment unless otherwise stated."
+
+
+\
+
+\ Revisions:
+\
+\           12 - 2011: Susan Ferguson - "The rats are about to start the go and stop 
+\                                         trials and I didn't see an option for the total 
+\                                         number of trials (just session length). The 
+\                                         earlier papers from the Robbins group say they 
+\                                         did 20 minute sessions with 200 trials max, the 
+\                                         latest paper is 25 minutes and 240 trials max. 
+\                                         Did you put a trial cap in the programs, and was it 200? 
+\                                         If not, can we add one in? If it is 200, can 
+\                                         I change it to 240?"
+\
+\           12 - 2011: Susan Ferguson - "We are now using 210 trials as our maximum and I've noticed 
+\                                         that the go and no go trials are not exactly 80-20% (varies 
+\                                         by animal). Since we have a fixed number of trials now, I 
+\                                         am thinking it would be better to have a more exact schedule 
+\                                         for the 80-20 (i.e., so we can be sure that all rats will get 
+\                                         the same number of go and no go trials)...
+\                                        Ideally the presentation of the no go trials would be pseudo-random,..."
+\
+\           4 - 2012: Susan Ferguson - "One of the measures that they use is the stop signal reaction time (SSRT). 
+\                                        In order to calculate this, one of the things that they do is to generate a 
+\                                        rank ordered list of all of the go mean reaction times - and then use one of 
+\                                        these based on some other calculations. I couldn't tell when I was looking at 
+\                                        the files, but is there any way for us to get this information off of the data 
+\                                        file, or does it calculate mean reaction time but not save the individual times?"
+\                                    - Split mean reaction times between GO and STOP trials. Rxn time is time between left
+\                                       lever press to produce right levere and then subsequent right press. For STOP
+\                                       trials, this is an error. 
+\                                    - Also created arrays for the rxn times for all trials; I = GO trial rxn times
+\                                       and S = STOP trial rxn times (errors)
+\
+\           4 - 2012: Susan Ferguson - "the Robbins lab has started doing multiple, randomized stop-signal delays (SSDs) 
+\                                       in the same test session (usually 2 in a session). Is it possible for us to have 
+\                                       this as a parameter also? Right now we can input one SSD per session."
+\                                    - Added D array that holds four possible Stop Signal Delays (SSDs) in seconds; 
+\                                       the SSD is chosen randomly without replacement from this list
+\
+\           5 - 2012: Susan Ferguson - Wants all trials (completed and not completed (omission errors)) to be counted
+\                                       in trial count. A(13) was incremented accordingly.
+\
+\           6 - 2012: Susan Ferguson - Wants exactly the percentage of STOP trials requested regardless of errors of omission.
+\                                    - This is sometimes impossible if the rat makes too many errors or makes many of them towards
+\                                       the end of the session; since the number of trials is fixed and errors count toward the 
+\                                       number of trials (A(13)). The closest we can get to that percentage is by calculating
+\                                       before each trial if the number of STOP trials (correct+incorrect(error of commission))
+\                                       divided by the total number of trials so far is equal to the percentage of STOP
+\                                       trials requested by the user. If it is not this percentage, compensate by giving a STOP
+\                                       trial or GO trial accordingly.
+\
+\
+
+
+
+
+
+\
+\   OUTPUTS
+\
+   ^leftlever  = 1
+   ^rightlever = 2
+   ^feeder     = 3
+   ^leftlt     = 4
+   ^rightlt    = 5
+   ^traylt     = 6
+   ^houselt    = 7
+   ^tone       = 8
+   ^pump       = 9
+   ^fan        = 10
+
+
+\
+\   INPUTS
+\
+   ^leftleverin  = 1
+   ^rightleverin = 3
+   ^headentry    = 5
+
+
+
+
+
+
+
+
+\   Z-PULSES
+\ 
+\   Z1  = start trial
+\   Z2  = correct lever press, reward signal
+\   Z3  = timeout, no left lever press in time-limit
+\   Z4  = end of timeout
+\   Z5  = Left lever press to extend right lever
+\   Z6  = timeout, no right lever press in time-limit (limited hold)
+\   Z7  = stop tone finished delivery
+\   Z8  = timeout, right press in Stop trial
+\   Z9  = Finished choosing STOP/GO trials from B list
+\   Z10 = Given after miss (error of comission) in STOP trial, so don't repeat trial (unique from Z4)
+
+\   VARIABLES
+\
+\  A(0)  = Maximum session length in minutes
+\  A(1)  = Time-limit in which the rat must press the left lever to avoid timeout; in seconds
+\  A(2)  = Inter-trial interval in seconds  *** NOT USED IN THIS PHASE ***
+\  A(3)  = Timeout length
+\  A(4)  = Counter for trial left lever presses; correct lever presses
+\  A(5)  = Counter for ITI head entries     *** NOT USED IN THIS PHASE ***
+\  A(6)  = Counter for timeout head entries
+\  A(7)  = Used for session time countdown display
+\  A(8)  = Counter for number of timeouts due to omission, i.e. failure to press left lever in time
+\  A(9)  = Limited hold for right lever for GO trials, i.e. the time limit for pressing the right lever (sec)
+\  A(10) = Counter for number of timeouts due to failure to press right lever in limited hold
+\  A(11) = Mean reaction time for GO trials in sec, time between right lever presentation and right lever response
+\  A(12) = Counter for right lever presses
+\  A(13) = Trial number (all trials including comission and omission errors; versus version 4 which only included
+\           completed trials, excluding omission errors on GO trials)
+\  A(14) = Total trial number (with left and right press)
+\  A(15) = Time of left lever press, used to calculate reaction time (between left press and right press)
+\  A(16) = Cumulative GO reaction time used to calculate mean GO reaction time
+\  A(17) = Limited holde for STOP trials (sec; the time limit for pressing the right lever; see A(9))
+\  A(18) = Flag indicating it is a STOP trial (1=STOP, 0=GO)
+\  A(19) = Stop Signal Delay (sec; time between pressing left lever and onset of tone); picked from D list
+\  A(20) = Counter for correct GO trials
+\  A(21) = Counter for correct STOP trials
+\  A(22) = Counter for incorrect STOP trials
+\  A(23) = Flag for tone finished (1=tone finished)
+\  A(24) = Total timeouts
+\  A(25) = Total head entries
+\  A(26) = Stop signal (tone) duration in milliseconds
+\  A(27) = Probability of stop (nogo) trial
+\  A(28) = Maximum number of trials
+\  A(29) = Random choice from C list for STOP or GO trial (random without replacement)
+\  A(30) = Used as subscript for C list when setting it up
+\  A(31) = Sum of C list
+\  A(32) = Cumulative STOP reaction time used to calculate mean STOP reaction time
+\  A(33) = Dummy variable for LISTing through C list
+\  A(34) = Mean reaction time for STOP trials in sec, time between right lever presentation and right lever response
+\  A(35) = Counter for reaction time for GO trials
+\  A(36) = Counter for reaction time for STOP trials
+\ 
+\  B = Source list for C
+\  C = List for STOP trials (1=STOP)
+\  D = List of Stop Signal Delays (sec; time between pressing left lever and onset of tone)
+\
+\  E (Event stamp array)
+\      1   = Left lever press
+\      2   = Right lever press
+\      5   = Pellet delivery
+\      7   = Head entry
+\      8   = Traylight ON
+\      9   = Traylight OFF
+\      10  = Timeout start
+\      11  = Timeout end/ trial start
+\      12  = Left lever extend
+\      13  = Left lever retract
+\      16  = Left cue light ON
+\      17  = Left cue light OFF
+\      18  = Right lever extend
+\      19  = Right lever retract
+\      20  = Right cue light ON
+\      21  = Right cue light OFF
+\      22  = Stop signal (tone) ON
+\      23  = Stop signal (tone) OFF
+\      24  = Go trial
+\      25  = Stop trial
+\      30  = Houselight ON
+\      31  = Houselight OFF
+\      100 = End of session
+\      
+\  F = Time stamp array
+\  G = Counter for event number
+\  H = Session timer in centiseconds 
+\  I = Array for reaction times in seconds for each GO trial
+\  S = Array for reaction times in seconds for each STOP trial
+\
+
+
+VAR_ALIAS Maximum session length (min) = A(0)
+VAR_ALIAS Maximum number of trials (500 max) = A(28)
+VAR_ALIAS Time-limit for left lever press(sec) = A(1)
+VAR_ALIAS Limited Hold GO trials(sec) = A(9)
+VAR_ALIAS Limited Hold STOP trials(sec) = A(17)
+VAR_ALIAS Timeout length (sec) = A(3)
+VAR_ALIAS StopSignalDelay1 (sec) = D(0)
+VAR_ALIAS StopSignalDelay2 (sec) = D(1)
+VAR_ALIAS StopSignalDelay3 (sec) = D(2)
+VAR_ALIAS StopSignalDelay4 (sec) = D(3)
+VAR_ALIAS Stop signal duration (msec) = A(26)
+VAR_ALIAS Approx % of STOP trials = A(27)
+
+
+DIM A = 50
+DIM C = 500  \ max number of trials = 500
+DIM E = 10000
+DIM F = 10000
+DIM I = 500  \ max number of trials = 500
+DIM S = 500  \ max number of trials = 500 
+
+LIST B = 0,1
+LIST D = 0,0,0,0
+
+
+
+S.S.1,   \ Set up defaults
+S1,
+   0": ON ^fan;
+       SET A(0) = 60, A(1) = 60, A(3) = 5, A(9) = 60, A(13) = 1, A(17) = 60, A(26) = 40, A(27) = 20, A(28) = 240;
+       SET E(0) = -987.987, F(0) = -987.987 ---> S2
+S2,
+   #START: RANDI C(A(30)) = B; ADD A(30);
+           IF A(30) = A(28) [@DONE, @NOTDONE]
+           @DONE: Z9 ---> S4
+           @NOTDONE: ---> S3
+S3,
+   0": RANDI C(A(30)) = B; ARITHMETICMEAN A(31) = C,0,A(30); ADD A(30);
+       IF A(30) = A(28) [@DONE, @NOTDONE]
+       @DONE: IF A(31) > (A(27)/100) [@TOOHIGH, @CHECK]
+              @TOOHIGH: SET C(A(30)-1) = 0; Z9 ---> S4
+              @CHECK: IF A(31) < (A(27)/100) [@TOOLOW, @JUSTRIGHT]
+                      @TOOLOW: SET C(A(30)-1) = 1; Z9 ---> S4
+                      @JUSTRIGHT: Z9 ---> S4
+       @NOTDONE: IF A(31) > (A(27)/100) [@TOOHIGH, @CHECK]
+                 @TOOHIGH: SET C(A(30)-1) = 0 ---> S3
+                 @CHECK: IF A(31) < (A(27)/100) [@TOOLOW, @JUSTRIGHT]
+                         @TOOLOW: SET C(A(30)-1) = 1 ---> S3
+                         @JUSTRIGHT: ---> S3
+S4,
+   #START: ---> S4
+
+
+
+
+S.S.2,     \ Head entries
+S1,
+  #Z9: ---> S2
+S2,
+  1#R^headentry: Z1; SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(25) ---> S3
+S3,     \ Trial head entries
+  1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(25) ---> SX
+  #Z2: ---> S2 
+  #Z3!#Z6!#Z8: ---> S4
+S4,     \ TO head entries
+  1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(6), A(25) ---> SX
+  #Z4: ---> S3
+  #Z10: ---> S2
+
+
+
+
+S.S.3,     \ Tray Light
+S1,
+  #Z9: ON ^traylt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S2,
+  #Z1!#Z3!#Z6!#Z8: OFF ^traylt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+S3,
+  #Z2!#Z10: ON ^traylt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+
+
+
+
+S.S.4,    \ Pellet delivery
+S1,
+  #Z9: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S2,
+  0.05": OFF ^feeder ---> S3
+S3,
+  #Z2: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(13) ---> S2
+
+
+
+
+S.S.5,    \ Timeout timer, houselight control
+S1,
+  #Z9: ON ^houselt; SET E(G) = 30, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S2,
+  #Z3!#Z6: SET E(G) = 10, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(24), A(13); OFF ^houselt;
+           SET E(G) = 31, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+
+  \ ** Need to give a unique signal when miss STOP trial, Z10, so that this is not repeated like other timeout trials ** \
+  \ ** Also it should be counted as a completed trial, so A(13) counter is incremented                                ** \
+  \ **                                                                                                                ** \
+  \ ** NOTE: Version 5 on, A(13) incremented for all trial types                                                      ** \
+  \ **                                                                                                                ** \
+  
+  #Z8: SET E(G) = 10, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(24), A(13); OFF ^houselt;
+       SET E(G) = 31, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4     
+S3,
+  A(3)*100#T: Z4; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G; ON ^houselt;
+              SET E(G) = 30, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S4,
+  A(3)*100#T: Z10; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G; ON ^houselt;
+              SET E(G) = 30, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+
+
+
+
+
+S.S.6,    \ Lever extension/retraction
+S1,
+  #Z1!#Z4: ON ^leftlever; SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, ; ADD G ---> S1
+  #Z2: OFF ^rightlever; SET E(G) = 19, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z3: OFF ^leftlever; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z5: OFF ^leftlever; ON ^rightlever; SET E(G) = 13, F(G) = H; ADD G;
+       SET E(G) = 18, F(G) = H; ADD G; SET E(G) = -987.987, F(G) = -987.987 ---> S1
+  #Z6!#Z8: OFF ^rightlever; SET E(G) = 19, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.7,    \ Lever presses
+S1,
+  #Z1: ---> S2
+S2,
+  1#R^leftleverin: Z5; SET E(G) = 1, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987, A(15) = H; ADD G, A(4);
+                   IF A(18) = 0 [@GO, @STOP]
+                   @GO: ---> S3
+                   @STOP: ---> S5
+  A(1)*100#T: Z3; ADD A(8) ---> S4
+S3,
+  1#R^rightleverin: Z2; SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(12), A(14), A(20);
+                    SET A(16) = A(16) + (H-A(15)), A(11) = (A(16)/100)/A(20);
+                    ADD A(35); SET I(A(35)) = (H-A(15))/100 ---> S1
+  A(9)*100#T: Z6; ADD A(10) ---> S4
+S4,
+  #Z4: ---> S2
+  #Z10: ---> S1
+S5,
+  1#R^rightleverin: SET E(G) = 2, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(12), A(14), A(22);
+                    SET A(32) = A(32) + (H-A(15)), A(34) = (A(32)/100)/A(22);
+                    ADD A(36); SET S(A(36)) = (H-A(15))/100;
+                    IF A(23) = 1 [@TONEDONE, @TONENOTDONE]
+                    @TONEDONE: Z8 ---> S4
+                    @TONENOTDONE: ---> S6
+  A(17)*100#T: IF A(23) = 1 [@TONEDONE, @TONENOTDONE]
+               @TONEDONE: Z2; ADD A(21) ---> S1
+               @TONENOTDONE: ---> S7
+S6,
+  #Z7: Z8 ---> S4
+S7,
+  0": IF A(23) = 1 [@TONEDONE, @TONENOTDONE]
+      @TONEDONE: Z2; ADD A(21) ---> S1
+      @TONENOTDONE: ---> S7
+  
+
+
+
+
+S.S.8,    \ Lever cue lights
+S1,
+  #Z1!#Z4: ON ^leftlt; SET E(G) = 16, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z2: OFF ^rightlt; SET E(G) = 21, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z3: OFF ^leftlt; SET E(G) = 17, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z5: OFF ^leftlt; ON ^rightlt; SET E(G) = 20, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G;
+       SET E(G) = 17, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+  #Z6!#Z8: OFF ^rightlt; SET E(G) = 21, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.9,    \ Choose STOP or GO trial type; tone control - NO REPEATS as of Version 6
+S1,
+  #Z1!#Z4: LIST A(29) = C(A(33)); 
+           IF A(13) > 5 [@CHECK, @NOCHECK]
+           @CHECK: IF A(29) = 1 [@STOP, @GO]
+                   @STOP: IF ((A(21)+A(22))/A(13)) < (A(27)/100) [@STOP, @GO]
+                          @STOP: SET A(18) = 1, A(23) = 0; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+                          @GO: SET A(18) = 0; SET E(G) = 24, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+                   @GO: IF ((A(21)+A(22))/A(13)) < (A(27)/100) [@STOP, @GO]
+                        @STOP: SET A(18) = 1, A(23) = 0; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+		        @GO: SET A(18) = 0; SET E(G) = 24, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX
+           @NOCHECK: IF A(29) = 1 [@STOP, @GO]
+                     @STOP: SET A(18) = 1, A(23) = 0; SET E(G) = 25, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+		     @GO: SET A(18) = 0; SET E(G) = 24, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> SX                     
+S2,
+  #Z5: RANDD A(19) = D ---> S3
+  #Z3!#Z6!#Z8: ---> S1   
+S3,
+  (A(19)*100)#T: ON ^tone; SET A(23) = 0, E(G) = 22, F(G) = H;
+                 SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4  
+  #Z3!#Z6!#Z8: OFF ^tone; Z7; SET A(23) = 1, E(G) = 23, F(G) = H;
+               SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1 
+S4,
+  (A(26)/10)#T: OFF ^tone; Z7; SET A(23) = 1, E(G) = 23, F(G) = H;
+                SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1   
+  #Z3!#Z6!#Z8: OFF ^tone; Z7; SET A(23) = 1, E(G) = 23, F(G) = H;
+               SET E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S1
+
+
+
+
+S.S.10,    \ Display
+S1,
+  #Z9: SET A(7) = A(0)*60;
+          SHOW 2, Complete GO trials: , A(20);
+          SHOW 3, Correct STOP trials: , A(21);
+          SHOW 4, Incorrect STOP trials: , A(22);
+          SHOW 5, Omissions (left lever): , A(8);
+          SHOW 6, Omissions (right lever): , A(10);
+          SHOW 7, Total Head Ents: , A(25);
+          SHOW 8, Sess time cntdown: , A(7);
+          SHOW 9, Total timeouts: , A(24);
+          SHOW 10, Mean GO RT (sec): , A(11); 
+          SHOW 11, Mean STOP-ERROR RT (sec): , A(34); 
+          IF A(13)>0 [@SHOWTRIAL, @NOSHOWTRIAL]
+          @SHOWTRIAL: SHOW 1, Trial number: , A(13) ---> S2
+          @NOSHOWTRIAL:---> S2
+S2,
+  1": SUB A(7); 
+          SHOW 2, Complete GO trials: , A(20);
+          SHOW 3, Correct STOP trials: , A(21);
+          SHOW 4, Incorrect STOP trials: , A(22);
+          SHOW 5, Omissions (left lever): , A(8);
+          SHOW 6, Omissions (right lever): , A(10);
+          SHOW 7, Total Head Ents: , A(25);
+          SHOW 8, Sess time cntdown: , A(7);
+          SHOW 9, Total timeouts: , A(24);
+          SHOW 10, Mean GO RT (sec): , A(11); 
+          SHOW 11, Mean STOP-ERROR RT (sec): , A(34); 
+          IF (A(13)>0) AND (A(13)<=A(28)) [@SHOWTRIAL, @NOSHOWTRIAL]
+          @SHOWTRIAL: SHOW 1, Trial number: , A(13) ---> S2
+          @NOSHOWTRIAL:---> S2
+     
+
+
+
+S.S.11,    \ Session timer and time-limit
+S1,
+  #Z9: ---> S2
+S2,
+  0.01": ADD H; IF (H >= (A(0)*6000)) OR (A(13) > A(28)) [@END, @NOEND]
+         @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+               SET I(A(35)+1) = -987.987, S(A(36)+1) = -987.987;
+               SHOW 2, Complete GO trials: , A(20);
+               SHOW 3, Correct STOP trials: , A(21);
+               SHOW 4, Incorrect STOP trials: , A(22);
+               SHOW 5, Omissions (left lever): , A(8);
+               SHOW 6, Omissions (right lever): , A(10);
+               SHOW 7, Total Head Ents: , A(25);
+               SHOW 8, Sess time cntdown: , A(7);
+               SHOW 9, Total timeouts: , A(24);
+               SHOW 10, Mean GO RT (sec): , A(11);
+               SHOW 11, Mean STOP-ERROR RT (sec): , A(34);
+               IF (A(13)>0) AND (A(13)<=A(28)) [@SHOWTRIAL, @NOSHOWTRIAL]
+               @SHOWTRIAL: SHOW 1, Trial number: , A(13) ---> STOPABORTFLUSH
+               @NOSHOWTRIAL: ---> STOPABORTFLUSH
+         @NOEND: ---> S2
+

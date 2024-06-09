@@ -1,0 +1,292 @@
+\
+\ ************************************
+\ *                                  *
+\ *            OFC_RR                *
+\ *                                  *
+\ ************************************
+\ Scott Ng-Evans (2013)
+\ Based on RP_COKED_FR (2009)
+\ Methods modified from:
+\
+\    Nat Commun. 2013 ; 4: 2264. Orbitofrontal and striatal circuits dynamically
+\    encode the shift between goal-directed and habitual actions.
+\    Christina M. Gremel1 and Rui M. Costa
+\
+\
+\       Each training session commenced with illumination of the house light
+\       and lever extension, and ended following schedule completion or after
+\       90 min with the lever retracting and the house-light turning off.
+\
+\       After acquiring lever-press behavior, mice were trained on random interval (RI)
+\       (RI30 2 days/RI60 4 days) and random ratio (RR) (RR10 2 days/RR20 4 days)
+\       schedules of reinforcement, with schedules differentiated by context, with the
+\       possibility of earning 15 reinforcers in each context or until 90 min had elapsed.
+\
+\
+\
+
+\
+\
+\ Revisions:
+\
+\
+\
+\
+\
+\
+\
+
+\
+\
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^Syringepump    = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+
+
+
+
+
+\Z-PULSES
+
+\Z1 - Response ratio chosen
+\Z2 - Time for reward
+\Z3 - Reward delivery complete
+
+
+
+\VARIABLES
+
+\ A(0)  = Maximum session length (min)
+\ A(1)  = Mean random interval - NOT USED IN CRF
+\ A(2)  = Current interval time
+\ A(3)  = Subscript for L list
+\ A(4)  = Subscript for N list
+\ A(5)  = Subscript for R list
+\ A(6)  = Subscript for O list
+\ A(7)  = Session time count up in minutes for display
+\ A(8)  = VI countdown - NOT USED IN CRF
+\ A(9)  = Interval count - NOT USED IN CRF
+\ A(10) = Maximum number of pellets
+\ A(11) = Rewarded lever (0:right  1:left)
+\ A(12) = Mean ratio
+\ A(13) = Ratio count
+\ A(14) = Current ratio
+\ A(15) = Used in ratio decrement
+\
+\ B(0)  = A(0) converted to system time
+\ B(1)  = A(1) converted to system time - NOT USE IN CRF
+\ B(2)  = A(2) converted to system time
+\
+\ E()   = Event stamp array
+\          1 - Press right lever
+\          2 - Press left lever
+\          3 - Head entry into food tray
+\          4 - Right lever cue light on
+\          5 - Right lever cue light off
+\          6 - Left lever cue light on
+\          7 - Left lever cue light off
+\          8 - House light on
+\          9 - House light off
+\         10 - Pellet delivery
+\         11 - Right lever extends
+\         12 - Right lever retracts
+\         13 - Left lever extends
+\         14 - Left lever retracts
+\         15 - Variable interval starts
+\         16 - Variable interval ends
+\         17 - Response ratio chosen
+\        100 - Session end
+\
+\ G    = Subscript for event and time stamp arrays
+\ H    = Session timer (10 msec resolution)
+\ I    = Ratio picked before rounding
+\ J    = Ratio after rounding
+\ L()  = Times of left presses in seconds
+\ N()  = Times of head entries in seconds
+\ O()  = Times of pellet delivery in seconds
+\ R()  = Times of right presses in seconds
+\ T()  = Time stamp array
+\ V()  = Random ratio list
+
+
+
+List V = 1,2,3,4,5,6,7,8,9,10
+
+
+
+DIM A = 20
+DIM B = 20
+DIM E = 50000
+DIM L = 1000
+DIM N = 10000
+DIM O = 1000
+DIM R = 1000
+DIM T = 50000
+
+
+
+
+VAR_ALIAS -------------------------------------------------------------------- = A(7)
+VAR_ALIAS Maximum session length (min) = A(0)
+VAR_ALIAS Maximum number of pellets = A(10)
+VAR_ALIAS Rewarded lever (0:right 1:left) = A(11)
+VAR_ALIAS Mean response ratio = A(12)
+VAR_ALIAS ------------------------------------------------------------------- = A(8)
+
+
+
+
+
+
+S.S.1,  \Session timer and initialize variables
+ S1,
+   0": SET A(0)  = 90;        \Maximum session length (min)
+       SET A(1)  = 60;        \Mean random interval (sec)
+       SET A(10) = 15;        \Maximum number of food pellets to deliver
+       SET A(11) = 0;         \Rewarded lever (0:right 1:left)
+       SET A(12) = 10;        \Mean response ratio
+       SET E(0)  = -987.987;
+       SET L(0)  = -987.987;
+       SET N(0)  = -987.987;
+       SET O(0)  = -987.987;
+       SET R(0)  = -987.987;
+       SET T(0)  = -987.987;
+       ON ^Fan ---> S2
+ S2,
+   #START: SET B(0) = A(0) * 1' ---> S3
+ S3,
+   0.01": ADD H; IF (H >= B(0)) OR (A(6) >= A(10)) [@END, @NOEND]
+          @END: SHOW 2,  REWARD#, A(6);
+                SHOW 6,  RIGHT PRESS, A(5);
+                SHOW 7,  LEFT PRESS, A(3);
+                SHOW 8,  HEAD ENTS, A(4);
+                SET E(G) = 100, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> STOPABORTFLUSH
+          @NOEND: ---> S3
+
+
+
+
+
+S.S.2,  \Choose response ratio
+ S1,
+   #START: InitConstProbArr V,A(12); ADD A(13); RANDD I = V; ~J := Round(I);~ ; Z1; SET A(14) = J;
+           SET E(G) = 17, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> S2
+ S2,
+   #Z2: ADD A(13); RANDD I = V; ~J := Round(I);~ ; Z1; SET A(14) = J;
+        SET E(G) = 17, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987---> SX
+
+
+
+
+
+S.S.3,  \Houselight
+ S1,
+   #START: ON ^HouseLight;
+           SET E(G) = 8, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.4,  \Lever extension, retraction
+ S1,
+   #Z1: ON ^RightLeverOut, ^LeftLeverOut;
+        SET E(G) = 11, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987;
+        SET E(G) = 13, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> S2
+ S2,
+   #START: ---> SX
+
+
+
+
+
+S.S.5,  \Recording all responses
+ S1,
+   #Z1: ---> S2
+ S2,
+   1#R^RightLeverIn: SET R(A(5)) = H/100; ADD A(5);
+                     SET R(A(5)) = -987.987;
+                     SET E(G) = 1, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> SX
+   1#R^LeftLeverIn: SET L(A(3)) = H/100; ADD A(3);
+                    SET L(A(3)) = -987.987;
+                    SET E(G) = 2, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> SX
+   1#R^HeadEntry: SET N(A(4)) = H/100; ADD A(4);
+                  SET N(A(4)) = -987.987;
+                  SET E(G) = 3, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.6,  \Response ratio lever pressing
+ S1,
+   #Z1: SET A(15) = A(14); SHOW 4, RATIO CNT DWN: , A(15);
+        IF A(11) = 0 [@RIGHTREWARDED, @LEFTREWARDED]
+        @RIGHTREWARDED: ---> S2
+        @LEFTREWARDED: ---> S3
+ S2,
+   1#R^RightLeverIn: SUB A(15); SHOW 4, RATIO CNT DWN: , A(15);
+                     IF A(15) > 0 [@NOTDONE, @DONE]
+                     @NOTDONE: ---> SX
+                     @DONE: Z2 ---> S1
+ S3,
+   1#R^LeftLeverIn: SUB A(15); SHOW 4, RATIO CNT DWN: , A(15);
+                     IF A(15) > 0 [@NOTDONE, @DONE]
+                     @NOTDONE: ---> SX
+                     @DONE: Z2 ---> S1
+
+
+
+
+
+S.S.7,  \Pellet delivery
+ S1,
+   #Z2: ON ^Feeder; SET O(A(6)) = H/100; ADD A(6);
+        SET O(A(6)) = -987.987;
+        SET E(G) = 10, T(G) = H; ADD G; SET E(G) = -987.987, T(G) = -987.987 ---> S2
+ S2,
+   0.1": OFF ^Feeder; Z3 ---> S1
+
+
+
+
+
+S.S.8, \Session timer for display
+ S1,
+   #START: ---> S2
+ S2,
+   1": ADD A(7); SHOW 3, SESS TIME(SEC), A(7) ---> S2
+
+
+
+
+
+S.S.9,  \Display
+ S1,
+   #START: SHOW 2,  REWARD#, A(6);
+           SHOW 6,  RIGHT PRESS, A(5);
+           SHOW 7,  LEFT PRESS, A(3);
+           SHOW 8,  HEAD ENTS, A(4) ---> S2
+ S2,
+   0.2": SHOW 2,  REWARD#, A(6);
+         SHOW 6,  RIGHT PRESS, A(5);
+         SHOW 7,  LEFT PRESS, A(3);
+         SHOW 8,  HEAD ENTS, A(4) ---> S2
+

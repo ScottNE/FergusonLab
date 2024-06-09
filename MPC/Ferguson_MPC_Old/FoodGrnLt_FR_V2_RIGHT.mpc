@@ -1,0 +1,529 @@
+\
+\
+\  FR_plus_Magtrain -> FR_NP_WithLaser -> SF_FR
+\  Scott Ng-Evans (2012)
+\  Created for JN
+\
+\
+\
+\
+\  Revision history:
+\
+\           8-2012 - Version 2, added ability to choose lever or nosepoke as input
+\
+\
+\           8-2012 - Version 3, Michele Kelly: "I have been using it with the
+\                    autoshaping (magazine) function, but the mice are very slow
+\                    to learn.  Is it possible to have the mice receive the light
+\                    and a tone when they press the active lever AND to have the
+\                    light and tone coincide with the magazine (autoshaping) function?
+\
+\                    ...Also, during the magazine function time the active lever
+\                    press count does not increase on the screen."
+\
+\          10-2015 - FR_NP_WithLaser, Antony Abraham: "I was wondering whether you could
+\                    modify this program for a few things:
+\                    1. Could we make the session time 30 min by default, with the tone cue
+\                       and houselight being off by default as well? I had modified this program
+\                       to start with nosepokes by default, but I don't know how to make the variables
+\                       appear changed to the different default setting. I'd rather have you change
+\                       these so that the program doesn't drive people crazy in the future.
+\                    2. Could you program a way to allow us to control the stimulation laser through
+\                       output #11?  The basic idea is that we need to be able to control the laser
+\                       firing following a nosepoke, similar to the food pellet reward. It would be
+\                       great if we could control whether or not the food is delivered at the same time
+\                       as the laser, as well as retaining the ability to change FR values etc. Ideally,
+\                       we would be able to have a repeating cycle of stimulation. We'd like to control
+\                       the frequency of stimulation as a variable factor (experimenter determined), and
+\                       pulse width of the laser "on" period to be 15ms. The remainder of the off period
+\                       would determine the frequency of the laser during stimulation. For example, for
+\                       a frequency of 20 Hz, the laser on period will be 15 ms, and off period will be
+\                       35 ms. After setting the frequency, we'd also like to be able to set the period
+\                       of time that the laser is on, e.g.: a reinforced nosepoke leads to a 2s long
+\                       period of 20 Hz stimulation."
+\
+\                     Default MED resolution is 10 msec, so ON pulse width adjusted to 20 msec.
+\
+\
+\           6-2016: SF_FR, Lindsay Yager - "I need a program that is 1 hour long with
+\                    an FR that we can change (FR 1, 3, or 5). During the session a
+\                    response on the active lever will result in illumination of the
+\                    cue light above the lever for 4 seconds, followed by delivery of
+\                    1 food pellet (pellet will be dispensed when cue light turns off).
+\                    The rats can earn as many pellets as they want during the session.
+\                    In the computer display I would like the number of pellets earned,
+\                    the total number of active lever presses, the total number of
+\                    inactive lever presses, the number of magazine entries, as well
+\                    as a timer showing the session duration. In half the boxes the
+\                    right lever will be the active lever and in the other half the
+\                    left lever will be the active lever, so it would be easiest if
+\                    we had a program for each lever."
+\
+\
+\           10-2017: E. Crummy - "Could you write a version of this food program that
+\                    only has the active lever out  throughout the session and uses
+\                    a green cue light instead of a white one?"
+\
+\                    Added menu options to extend the active lever only or both levers
+\                     and to use the white cue light or green cue light.
+\                    This is FoodGrnLt_FR_1_LEFT and FoodGrnLt_FR_1_RIGHT.
+\
+\           11-2017: E. Crummy - "Can you change the food programs so that there is an
+\                                  option to have the house lights off?"
+\                    FoodGrnLt_FR_V2_LEFT and FoodGrnLt_FR_V2_RIGHT
+\
+\
+\
+\
+\ June 2016 - Ferguson codes
+
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^Syringepump    = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+^RightNose      = 80
+^LeftNose       = 80
+
+
+
+\
+\
+\   Z-pulses
+\
+\   Z1 - start trial
+\   Z2 - reward
+\   Z3 - trial end, reinforcement delivery over
+\   Z4 - end magazine training
+\   Z5 - end cue light, time to deliver reinforcer
+\
+\
+\   Event stamps ( array E )
+\
+\   1     = Active lever press
+\   2    = Inactive lever press
+\   3     = Right lever press
+\   4    = Left lever press
+\   5     = Pellet delivery
+\   7    = Food tray head entry
+\   10    = Houselight on
+\   11    = Houselight off
+\   12  = Right cue lights on
+\   13  = Right cue lights off
+\   14    = Left cue lights on
+\   15    = Left cue lights off
+\   16    = ITI starts
+\   17     = ITI over
+\   18    = Magazine training starts
+\   19    = Magazine training ends
+\   24  = ITI right lever press
+\   25  = ITI left lever press
+\   26  = Right press during magazine training
+\   27  = Left press during magazine training
+\   28  = Green light on
+\   29  = Green light off
+\   30  = Extend right lever
+\   31  = Extend left lever
+\   32  = Retract right lever
+\   33  = Retract left lever
+\   100    = Session ends
+\
+\
+\   Variables
+\
+\   A(0)     = Maximum number of earned pellets
+\   A(1)    = Magazine training (0:no 1:yes)
+\   A(2)    = Fixed ratio
+\   A(3)    = Active lever (0:right 1:left)
+\   A(4)    = ITI (sec)
+\   A(5)    = Max magazine training length (min)
+\   A(6)    = Max mag train completed ratios (before moving on to session)
+\   A(7)    = Number of pellets delivered for each completed FR
+\   A(8)        = Time-limit for FR session in minutes
+\   A(9)    = Use lever or nosepoke (0:lever 1:nosepoke)
+\   A(10)    = Output number for right lever and right nosepoke
+\   A(11)    = Output number for left lever and left nosepoke
+\   A(12)    = Which cue light? (0:none 1:white 2:green) - comes on with reward
+\   A(13)    = Use tone (0:no  1:yes) - comes on with reward
+\   A(14)       = Cue light duration (sec)
+\   A(15)       = Tone duration (sec)
+\   A(16)       = Dummy variable for menu
+\   A(17)       = Dummy variable for menu
+\   A(18)       = Extend active lever or both (0:Active 1:Both)
+\   A(19)       = Use houselight? (0:no 1:yes)
+\   A(20)       = Output number for houselight
+\
+\   B(0)    = Current VI time picked from the V list
+\   B(1)    = Counter for number of active lever presses in magazine training
+\   B(2)    = Counter for fixed ratio responses
+\   B(3)    = Counter for number of right active presses
+\   B(4)    = Counter for number of right inactive presses
+\   B(5)    = Counter for number of pellets delivered for completed FR
+\   B(6)    = Counter for number of completed fixed ratios
+\   B(7)    = Subscript for C array
+\   B(8)    = Subscript for D array
+\   B(9)    = Counter for food tray head entries
+\   B(10)    = Counter for pellets delivered during magazine training
+\   B(11)       = ITI right presses
+\   B(12)       = ITI left presses
+\   B(13)       = Counter for number of left active presses
+\   B(14)       = Counter for number of left inactive presses
+\   B(15)       = Right presses during magazine training
+\   B(16)       = Left presses during magazine training
+\   B(17)       = Session time cumulated seconds
+\   B(18)       = Total right lever preses
+\   B(19)       = Total left lever presses
+\
+\   C()        = Active lever presses in 1-sec bins
+\   D()        = Inactive lever presses in 1-sec bins
+\   E()        = Event stamp array
+\   G         = Event and time stamp counter
+\   H         = Session timer in centiseconds
+\   T()        = Time stamp array
+\   V()        = List for VI times in seconds for magazine training
+\
+\
+\
+\   Displayed:
+\
+\   CELL 1, FR Value: , A(2);
+\   CELL 2, Completed FRs: , B(6);
+\   CELL 6, Active Rt FR Presses: , B(3);   NOTE: This is active during FR, for active presses during ITI see below
+\   CELL 7, Active Lt FR Presses: , B(13);
+\   CELL 11, Inactive Rt FR Presses: , B(4);
+\   CELL 12, Inactive Lt FR Presses: , B(14);
+\   CELL 16, ITI Right Presses: , B(11);
+\   CELL 17, ITI Left Presses: , B(12);
+\   CELL 21, Total Right Presses: , B(18);
+\   CELL 22, Total Left Presses: , B(19);
+\   CELL 26, Mag train presses: , B(1);
+\   CELL 27, Mag train pellets: , B(10);
+\   CELL 31, Head Ents: , B(9);
+\
+\
+
+
+
+DIM A = 50
+DIM B = 50
+DIM C = 25000
+DIM D = 25000
+DIM E = 20000
+DIM T = 20000
+
+LIST V = 20,30,40,50,60,70,80,90,100
+
+
+VAR_ALIAS ----------------------------------- = A(16)
+VAR_ALIAS Magazine training (0:no 1:yes) = A(1)
+VAR_ALIAS Max mag train length (min) = A(5)
+VAR_ALIAS Max mag train completed ratios = A(6)
+VAR_ALIAS Fixed ratio = A(2)
+VAR_ALIAS Max completed FRs = A(0)
+VAR_ALIAS Max session duration (min) = A(8)
+VAR_ALIAS Use lever or NP (0:lever 1:NP) = A(9)
+VAR_ALIAS Active lever or NP (0:right 1:left) = A(3)
+VAR_ALIAS Extend active lever or both (0:Active 1:Both) = A(18)
+VAR_ALIAS Which cue light? (0:none 1:white 2:green) = A(12)
+VAR_ALIAS Use house light? (0:no 1:yes) = A(19)
+VAR_ALIAS Use tone (0:no 1:yes) = A(13)
+VAR_ALIAS Pellets per reward = A(7)
+VAR_ALIAS ITI (sec) = A(4)
+VAR_ALIAS ---------------------------------- = A(17)
+
+
+
+S.S.1,         \Trial timing control
+    S1,
+      0": ON ^Fan;
+              SET A(0)  = 1000;  \ Max completed FRs
+              SET A(1)  = 0;     \ Magazine training (0:no 1:yes)
+              SET A(2)  = 1;     \ Fixed ratio
+              SET A(3)  = 0;     \ Active lever or NP (0:right 1:left)
+              SET A(4)  = 0;     \ ITI (sec)
+              SET A(5)  = 10;    \ Max mag training length (min)
+              SET A(6)  = 10;    \ Max mag training lever presses
+              SET A(7)  = 1;     \ Pellets to deliver per reward
+              SET A(8)  = 60;    \ Max session duration (min)
+              SET A(9)  = 0;     \ Use lever or nosepoke (0:lever 1:nosepoke)
+              SET A(12) = 1;     \ Which cue light? (0:none 1:white 2:green)
+              SET A(13) = 0;     \ Use tone (0:no 1:yes)
+              SET A(14) = 4;     \ Cue light duration (sec)
+              SET A(15) = 4;     \ Tone duration (sec)
+              SET A(18) = 0;     \ Extend active lever or both (0:Active 1:Both)
+              SET A(19) = 0;     \ Use houselight? (0:no 1:yes)
+              SET E(0)  = -987.987, T(0) = -987.987 ---> S2
+    S2,
+      #START: IF A(9) = 0 [@LEV, @NP]
+                  @LEV: SET A(10) = ^RightLeverIn, A(11) = ^LeftLeverIn;
+                        IF A(18) = 0 [@ACTIVEONLY, @BOTH]
+                        @ACTIVEONLY: IF A(3) = 0 [@RIGHT, @LEFT]
+                                     @RIGHT: ON ^RightLeverOut; SET E(G) = 30, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+                                     @LEFT: ON ^LeftLeverOut; SET E(G) = 31, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+                        @BOTH: ON ^RightLeverOut, ^LeftLeverOut;
+                               SET E(G) = 30, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                               SET E(G) = 31, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+               @NP: SET A(10) = ^RightNose, A(11) = ^LeftNose ---> S3
+    S3,
+      #Z4: Z1; SHOW 20, MAGTRAIN ENDED, B(1) ---> S4
+    S4,
+      #Z2: ---> S5
+    S5,
+      #Z3: SET E(G) = 16, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S6
+        S6,
+          (A(4)*100)#T: SET E(G) = 17, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G; Z1 ---> S4
+
+
+
+
+S.S.2,        \Lever presses and fixed ratio
+        S1,
+          #START: ---> S2
+        S2,
+          #Z4: ---> S3
+      1#RA(10): ADD B(15);
+                    SET E(G) = 3, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 26, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+      1#RA(11): ADD B(16);
+                    SET E(G) = 4, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 27, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+    S3,
+      #Z1: SET B(2) = A(2);
+               IF A(3) = 0 [@RIGHT, @LEFT]
+               @RIGHT: ---> S4
+               @LEFT: ---> S5
+      1#RA(10): ADD B(11);
+                    SET E(G) = 3, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 24, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+      1#RA(11): ADD B(12);
+                    SET E(G) = 4, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 25, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> SX
+    S4,
+      1#RA(10): SET E(G) = 1, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 3, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    ADD B(3); SUB B(2); IF B(2) <= 0 [@FRDONE, @FRNOTDONE]
+                                        @FRDONE: Z2; ADD B(6) ---> S3
+                                        @FRNOTDONE: ---> S4
+      1#RA(11): SET E(G) = 2, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G, B(14);
+                    SET E(G) = 4, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S4
+        S5,
+      1#RA(11): SET E(G) = 1, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    SET E(G) = 4, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    ADD B(13); SUB B(2); IF B(2) <= 0 [@FRDONE, @FRNOTDONE]
+                                         @FRDONE: Z2; ADD B(6) ---> S3
+                                         @FRNOTDONE: ---> S5
+      1#RA(10): SET E(G) = 2, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G, B(4);
+                    SET E(G) = 3, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S5
+
+
+
+
+S.S.3,       \Food tray head entries
+    S1,
+      #START: ---> S2
+    S2,
+      1#R^HeadEntry: ADD B(9); SET E(G) = 7, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+
+
+
+
+S.S.4,       \Houselight, food delivery and traylight
+    S1,
+      #START: IF A(19) = 0 [@NOHOUSELT, @HOUSELT]
+                  @NOHOUSELT: SET A(20) = 80 ---> S2
+                  @HOUSELT: SET A(20) = ^HouseLight;
+                            ON A(20); SET E(G) = 10, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+          #Z4: OFF ^Feeder ---> S5
+    S2,
+      #Z5: ON ^Feeder; SET E(G) = 5, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+          #Z4: OFF ^Feeder ---> S5
+    S3,
+      0.1": OFF ^Feeder ---> S4
+      #Z4: OFF ^Feeder ---> S5
+    S4,
+          0.1": Z3 ---> S2
+          #Z4: OFF ^Feeder ---> S5
+    S5,
+      #Z5: IF A(7) > 0 [@PELLETS, @NOPELLETS]
+               @PELLETS: SET B(5) = A(7); ON ^Feeder;
+                         SET E(G) = 5, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S6
+           @NOPELLETS: OFF ^Feeder; Z3 ---> S5
+        S6,
+          0.1": OFF ^Feeder; SUB B(5); IF B(5) <= 0 [@PELLETSDONE, @PELLETSNOTDONE]
+        @PELLETSDONE: Z3 ---> S5
+        @PELLETSNOTDONE: ---> S7
+        S7,
+          0.1": ON ^Feeder; SET E(G) = 5, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S6
+
+
+
+S.S.5,        \Binning of active and inactive lever presses; Cumulating lever presses
+    S1,
+      #START: SET C(B(7)+1) = -987.987, D(B(8)+1) = -987.987;
+                  IF A(3) = 0 [@RIGHT, @LEFT]
+                  @RIGHT: ---> S2
+                  @LEFT: ---> S3
+    S2,
+      1#RA(10): ADD C(B(7)), B(18) ---> SX
+      1#RA(11): ADD D(B(8)), B(19) ---> SX
+          1": ADD B(7), B(8);
+              SET C(B(7)+1) = -987.987, D(B(8)+1) = -987.987;
+              SET C(B(7)) = 0, D(B(8)) = 0 ---> S2
+    S3,
+      1#RA(11): ADD C(B(7)), B(19) ---> SX
+      1#RA(10): ADD D(B(8)), B(18) ---> SX
+          1": ADD B(7), B(8);
+              SET C(B(7)+1) = -987.987, D(B(8)+1) = -987.987;
+              SET C(B(7)) = 0, D(B(8)) = 0 ---> S3
+
+
+
+
+S.S.6,        \Magazine training VI and lev presses
+    S1,
+      #START: IF A(1) = 1 [@MAGTRAIN, @NOMAGTRAIN]
+                  @MAGTRAIN: RANDD B(0) = V; IF A(3) = 0 [@RIGHT, @LEFT]
+                             @RIGHT: ---> S2
+                             @LEFT: ---> S3
+                  @NOMAGTRAIN: Z4 ---> S1
+    S2,
+      (B(0)*100)#T: Z2; ADD B(10); RANDD B(0) = V ---> S4
+      1#RA(10): SET E(G) = 1, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    Z2; ADD B(1), B(10);
+                    IF B(1) >= A(6) [@ENDMAG, @NOENDMAG]
+            @ENDMAG: Z4; SET E(G) = 19, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+            @NOENDMAG: RANDD B(0) = V ---> S4
+      1#RA(11): SET E(G) = 2, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+      #Z4: ---> S1  \End due to time-limit
+    S3,
+      (B(0)*100)#T: Z2; ADD B(10); RANDD B(0) = V ---> S5
+      1#RA(11): SET E(G) = 1, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                    Z2; ADD B(1), B(10);
+                    IF B(1) >= A(6) [@ENDMAG, @NOENDMAG]
+            @ENDMAG: Z4; SET E(G) = 19, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+            @NOENDMAG: RANDD B(0) = V ---> S5
+      1#RA(10): SET E(G) = 2, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S3
+      #Z4: ---> S1 \End due to time-limit
+         S4,
+           #Z3: ---> S2
+         S5,
+           #Z3: ---> S3
+
+
+
+
+S.S.7,        \Magazine training timer
+    S1,
+      #START: IF A(1) = 1 [@MAGTRAIN, @NOMAGTRAIN]
+          @MAGTRAIN: SET E(G) = 18, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S2
+          @NOMAGTRAIN: ---> S1
+    S2,
+          (A(5)*6000)#T: Z4; SET E(G) = 19, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S1
+      #Z4: ---> S1  \End due to lever-press limit
+
+
+
+
+S.S.8,        \Cue lights
+    S1,
+      #START: IF A(12) = 0 [@NOCUELT, @OTHER]
+                  @NOCUELT: ---> S6
+                  @OTHER: IF A(12) = 1 [@WHITELT, @GREENLT]
+                          @WHITELT: ---> S2
+                          @GREENLT: ---> S7
+    S2,
+      #Z2: IF A(3) = 0 [@RIGHT, @LEFT]
+               @RIGHT:  ON ^RightCueLight;
+                SET E(G) = 12, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                OFF ^LeftCueLight ---> S3
+           @LEFT:  ON ^LeftCueLight;
+               SET E(G) = 14, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+               OFF ^RightCueLight ---> S4
+    S3,
+      (A(14)*100)#T: OFF ^RightCueLight;
+                         SET E(G) = 13, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                         Z5 ---> S2
+    S4,
+      (A(14)*100)#T: OFF ^LeftCueLight;
+                         SET E(G) = 15, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                         Z5 ---> S2
+        S6,
+          #Z2: Z5 ---> S6
+    S7,
+      #Z2: ON ^GreenLight;
+           SET E(G) = 28, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G ---> S8
+    S8,
+      (A(14)*100)#T: OFF ^GreenLight;
+                         SET E(G) = 29, T(G) = H, E(G+1) = -987.987, T(G+1) = -987.987; ADD G;
+                         Z5 ---> S7
+
+
+
+
+
+S.S.9,        \Tone
+    S1,
+      #START: IF A(13) = 1 [@TONE, @NOTONE]
+                  @TONE: ---> S2
+                  @NOTONE: ---> S1
+        S2,
+          #Z2: ON ^Sonalert ---> S3
+        S3,
+          (A(15)*100)#T: OFF ^Sonalert ---> S2
+
+
+
+S.S.10,      \Session time display
+        S1,
+          #START: ---> S2
+        S2,
+          1": ADD B(17);
+              SHOW 5, Time (min): , B(17)/60 ---> S2
+
+
+
+
+S.S.13,      \Display values
+    S1,
+      #START: SHOW 1, Pellets: , B(6);
+                  SHOW 2, Active Left Presses: , B(19);
+                  SHOW 3, Inactive Right Presses: , B(18);
+                  SHOW 4, Magazine Entries: , B(9) ---> S2
+    S2,
+      .5":  SHOW 1, Pellets: , B(6);
+                SHOW 2, Active Left Presses: , B(19);
+                SHOW 3, Inactive Right Presses: , B(18);
+                SHOW 4, Magazine Entries: , B(9)---> S2
+
+
+
+
+S.S.14,     \Reinforcer number limit and session timer
+    S1,
+      #START: ---> S2
+    S2,
+      0.01": ADD H; IF (B(6) < A(0)) AND (H < (A(8)*6000)) [@NOEND, @YESEND]
+         @NOEND: ---> SX
+                 @YESEND: SET E(G) = 100, T(G) = H;
+                          SHOW 1, Pellets: , B(6);
+                          SHOW 2, Active Left Presses: , B(19);
+                          SHOW 3, Inactive Right Presses: , B(18);
+                          SHOW 4, Magazine Entries: , B(9);
+                          ADD G; SET E(G) = -987.987, T(G) = -987.987;
+                          ADD B(7), B(8); SET C(B(7)) = -987.987, D(B(8)) = -987.987 ---> STOPABORTFLUSH
+

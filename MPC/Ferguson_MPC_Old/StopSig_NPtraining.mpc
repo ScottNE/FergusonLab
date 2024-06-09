@@ -1,0 +1,193 @@
+\*************************************
+\ ***  Eagle and Robbins, 2003     ***
+\ ***  Behavioral Neuroscience,    ***
+\ ***  Vol. 117, No. 6, 1302-1317  ***
+\ ***                              ***
+\ ***  Stop-signal task            ***
+\ ***  Training phase 1:           ***
+\ ***  Nose-poke(head entry)       ***
+\ ***   training                   ***
+\ ***                              ***
+\ ************************************
+\
+\
+
+\ Summary: At the start of every trial, a pellet is delivered to the 
+\           magazine, and the tray(magazine) light turns on and stays on.
+\           Once the animal does a head entry into the magazine, the 
+\           traylight is turned off and an ITI is started.
+\           If the animal does not do a tray head entry in the trial within a time-limit,
+\           the traylight turns off and a time-out starts (instead of an ITI) in which the houselight
+\           is off and responses are recorded but without consequence. Houselight is back on after timeout.
+\           The traylight turns back on after the ITI or time-out and another pellet is delivered.
+\
+
+\ Revisions:
+
+
+
+
+\
+\   OUTPUTS
+\
+   ^leftlever  = 1
+   ^rightlever = 2
+   ^feeder     = 3
+   ^leftlt     = 4
+   ^rightlt    = 5
+   ^traylt     = 6
+   ^houselt    = 7
+   ^tone       = 8
+   ^pump       = 9
+   ^fan        = 10
+
+
+\
+\   INPUTS
+\
+   ^leftleverin  = 1
+   ^rightleverin = 3
+   ^headentry    = 5
+
+
+
+\   Z-PULSES
+\ 
+\   Z1 = start trial
+\   Z2 = correct head entry
+\   Z3 = timeout, no head entry in time-limit
+\   Z4 = end of timeout
+
+
+
+\   VARIABLES
+\
+\  A(0) = Session length in minutes
+\  A(1) = Time-limit in which the rat must headentry to avoid timeout; in seconds
+\  A(2) = Inter-trial interval in seconds
+\  A(3) = Timeout length for a missed nosepoke
+\  A(4) = Counter for trial head entries ('correct head entries')
+\  A(5) = Counter for ITI head entries
+\  A(6) = Counter for timeout head entries
+\  A(7) = Used for session time countdown display
+\ 
+\  E (Event stamp array)
+\      5   = Pellet delivery
+\      7   = Head entry
+\      8   = Traylight ON
+\      9   = Traylight OFF
+\      10  = Timeout start
+\      11  = Timeout end/ trial start
+\      12  = ITI start
+\      13  = ITI end/ trial start
+\      100 = End of session
+\      
+\  F = Time stamp array
+\
+
+
+VAR_ALIAS Session length (min) = A(0)
+VAR_ALIAS Time-limit for headent(sec) = A(1)
+VAR_ALIAS Timeout length (sec) = A(3)
+VAR_ALIAS Inter-trial interval (sec) = A(2)
+
+
+DIM A = 50
+DIM E = 10000
+DIM F = 10000
+
+
+
+S.S.1,   \ Set up defaults and trial timing
+S1,
+   0": ON ^fan; 
+       SET A(0) = 15, A(1) = 30, A(2) = 10, A(3) = 5;
+       SET E(0) = -987.987, F(0) = -987.987 ---> S2
+S2,
+   #START: SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+S3,
+   #Z2: SET E(G) = 12, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S4
+S4,
+   A(2)*100#T: Z1; SET E(G) = 13, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+
+
+
+
+S.S.2,     \ Head entries
+S1,
+  #START: ---> S2
+S2,
+  1#R^headentry: Z2; SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(4) ---> S3
+  A(1)*100#T: Z3 ---> S4
+S3,     \ ITI head entries
+  1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(5) ---> SX
+  #Z1: ---> S2
+S4,     \ TO head entries
+  1#R^headentry: SET E(G) = 7, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G, A(6) ---> SX
+  #Z4: ---> S2
+
+
+
+
+S.S.3,     \ Tray Light
+S1,
+  #START: ON ^traylt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S2,
+  #Z2!#Z3: OFF ^traylt; SET E(G) = 9, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S3
+S3,
+  #Z1!#Z4: ON ^traylt; SET E(G) = 8, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+
+
+
+
+S.S.4,    \ non-contingent Pellet delivery
+S1,
+  #START: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+S2,
+  0.05": OFF ^feeder ---> S3
+S3,
+  #Z1!#Z4: ON ^feeder; SET E(G) = 5, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G ---> S2
+
+
+
+
+S.S.5,    \ Timeout timer, houselight control
+S1,
+  #START: ON ^houselt ---> S2
+S2,
+  #Z3: SET E(G) = 10, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G; OFF ^houselt ---> S3
+S3,
+  A(3)*100#T: Z4; SET E(G) = 11, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987; ADD G; ON ^houselt ---> S2
+
+
+
+
+S.S.6,    \ Display
+S1,
+  #START: SET A(7) = A(0)*60;
+          SHOW 1, Correct Head Ents: , A(4);
+          SHOW 2, ITI Head Ents: , A(5);
+          SHOW 3, TO Head Ents: , A(6);
+          SHOW 4, Sess time cntdown: , A(7) ---> S2
+S2,
+  1": SUB A(7); 
+      SHOW 1, Correct Head Ents: , A(4);
+      SHOW 2, ITI Head Ents: , A(5);
+      SHOW 3, TO Head Ents: , A(6);
+      SHOW 4, Sess time cntdown: , A(7) ---> S2 
+     
+
+
+
+S.S.7,    \ Session timer and time-limit
+S1,
+  #START: ---> S2
+S2,
+  0.01": ADD H; IF H > (A(0)*6000) [@END, @NOEND]
+         @END: SET E(G) = 100, F(G) = H, E(G+1) = -987.987, F(G+1) = -987.987;
+               SHOW 1, Correct Head Ents: , A(4);
+               SHOW 2, ITI Head Ents: , A(5);
+               SHOW 3, TO Head Ents: , A(6);
+               SHOW 4, Sess time cntdown: , A(7) ---> STOPABORTFLUSH
+         @NOEND: ---> S2
+

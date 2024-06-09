@@ -1,0 +1,256 @@
+\
+\ ********************************
+\ *                              *
+\ *  BASE: SF_TD_COKED_FR_REIN   *
+\ *                              *
+\ ******************************** 
+\ Scott Ng-Evans (2016)
+\                 
+\ 
+\ Tess Donckels: "Left Lever - Cue Light Self-Administration. Rats will be trained to press 
+\                 for IV infusions of saline, cocaine, or heroin (50uL delivered over 2.8 sec). 
+\                 The beginning of the session will be indicated by insertion of the left lever 
+\                 into the chamber. Each press of the left lever will result in an infusion and 
+\                 the illumination of the cue light above the lever for 20 seconds, during which 
+\                 time responses will not result in additional drug delivery (infusion should 
+\                 start when the cue light turns on). The infusions will be available on an FR1 
+\                 schedule. The end of the session will be indicated by retraction of the lever. 
+\                 No houselight will be illuminated during these sessions."
+\
+\ Tess Donckels: "Cue Reinstatement - Cue Light, Left Lever Active. 3 hour session, where both 
+\                 levers emerge. The left lever will be active, and the right lever will be 
+\                 inactive. No lever presses should grant any infusions. The cue light 
+\                 should remain on for the duration of the session."
+\
+\
+\ Tess Donckels: "Cue Reinstatement - Cue Light, Left Lever Active. 1 hour session, where both 
+\                 levers emerge. The left lever will be active, and the right lever will be 
+\                 inactive. No lever presses should grant any infusions. The cue light should 
+\                 remain on for five seconds at the beginning of the session, and then 20 seconds 
+\                 after each time the active lever is pressed."
+\                
+\                - This is SF_TD_COKED_REINS_V2_LEFT
+\
+\
+\ Revisions:
+\
+\
+\
+\
+\
+
+\
+\
+\ Input Constants
+
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Sonalert       = 8
+^Syringepump    = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+
+
+
+
+\ Z-pulses
+
+\ Z2 - Active lever pressed
+
+
+
+\ Variable Definitions:
+
+\ A(0)  = Active lever (0:right 1:left)
+\ A(1)  = Drug infusion time (sec) - NOT USED IN REINSTATEMENT
+\ A(2)  = Time-out length (sec) - NOT USED IN REINSTATEMENT
+\ A(3)  = Session length in hours
+\ A(4)  = Fixed ratio - FR  - NOT USED IN REINSTATEMENT
+\ A(5)  = Session time displayed in minutes
+\ A(6)  = Dummy variable for Wizard first-line bug
+\ A(7)  = Dummy variabe for menu display
+\ A(8)  = Maximum number of drug infusions to end session - NOT USED IN REINSTATEMENT
+\ A(9)  = Houselight during the session (0:off 1:on)
+\ A(10) = Initial cue light on time (sec)
+\ A(11) = Cue light on time after active press (sec)
+\
+\ B(0)  = Active right presses
+\ B(1)  = Active left presses
+\ B(2)  = Inactive right presses
+\ B(3)  = Inactive left presses
+\
+\ E = event identity stamp
+\       3  - Right active press
+\       4  - Left active press
+\       5  - Infusion start
+\       6  - Infusion end
+\       8  - Right inactive press
+\       9  - Left inactive press
+\      10  - Right lever extends
+\      11  - Left lever extends
+\      38  - Right lever cue light on
+\      39  - Left lever cue light on
+\      40  - Right lever cue light off
+\      41  - Left lever cue light off
+\      42  - Houselight on
+\      43  - Houselight off
+\     100  - End session marker
+\      
+\ G = Event counter
+\ H = Session timer
+\ T = Event time stamp
+
+
+DIM A = 50
+DIM B = 10
+DIM E = 50000
+DIM T = 50000
+
+
+
+
+VAR_ALIAS -------------------------------------------------------------------- = A(26)
+VAR_ALIAS Session length (hour) = A(3)
+VAR_ALIAS Active lever (0:right 1:left) = A(0)
+VAR_ALIAS Houselight during session (0:OFF 1:ON) = A(9)
+VAR_ALIAS Initial cue light on time (sec) = A(10)
+VAR_ALIAS Cue light on time after active press (sec) = A(11)
+VAR_ALIAS ------------------------------------------------------------------- = A(27)
+
+
+
+S.S.1,  \ Default set-up
+  S1,  
+    0": SET A(0) = 1;    \Active lever (0:right 1:left)
+        SET A(3) = 1;    \Maximum session length in hours
+        SET A(9) = 0;    \Houselight during the session (0:OFF 1:ON)
+        SET A(10)= 5;    \Seconds that cue light is on at beginning of session
+        SET A(11) = 20;  \Cue light on time after active press (sec)
+        SET T(0) = -987.987; SET E(0) = -987.987;
+        ON ^Fan ---> S2
+  S2, 
+    #START: ---> SX
+
+
+
+
+
+S.S.2,  \ Individual active and inactive presses and FR
+  S1,  
+    #START: IF A(0) = 0 [@RIGHT, @LEFT]
+            @RIGHT: ---> S3
+            @LEFT: ---> S2
+  S2,
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 4; ADD G, B(1); SET T(G) = -987.987, E(G) = -987.987; Z2 ---> SX
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 8; ADD G, B(2); SET T(G) = -987.987, E(G) = -987.987 ---> SX
+  S3,
+    1#R^RightLeverIn: SET T(G) = H, E(G) = 3; ADD G, B(0); SET T(G) = -987.987, E(G) = -987.987; Z2 ---> SX
+    1#R^LeftLeverIn: SET T(G) = H, E(G) = 9; ADD G, B(3); SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+S.S.5,  \ House light
+  S1,
+    #START: IF A(9) = 0 [@HLOFF, @HLON]
+	    @HLOFF: ---> SX
+	    @HLON: ON ^HouseLight; SET T(G) = H, E(G) = 42; ADD G; SET T(G) = -987.987; SET E(G) = -987.987 ---> SX
+ 
+
+
+
+
+S.S.6,   \ Lever Cue lights
+  S1,
+    #START: SET A(10) = A(10) * 1", A(11) = A(11) * 1";
+            IF A(0) = 0 [@RIGHT, @LEFT]
+            @RIGHT: ON ^RightCueLight;
+                    SET T(G) = H, E(G) = 38; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S2
+            @LEFT: ON ^LeftCueLight;
+                   SET T(G) = H; SET E(G) = 39; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S2
+  S2,
+    A(10)#T: IF A(0) = 0 [@RIGHT, @LEFT]
+             @RIGHT: OFF ^RightCueLight;
+                     SET T(G) = H, E(G) = 40; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+             @LEFT: OFF ^LeftCueLight;
+                    SET T(G) = H; SET E(G) = 41; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+  S3,
+    #Z2: IF A(0) = 0 [@RIGHT, @LEFT]
+         @RIGHT: ON ^RightCueLight;
+                 SET T(G) = H, E(G) = 38; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S4
+         @LEFT: ON ^LeftCueLight;
+                SET T(G) = H; SET E(G) = 39; ADD G; SET T(G) = -987.987, E(G) = -987.987  ---> S4
+  S4,
+    A(11)#T: IF A(0) = 0 [@RIGHT, @LEFT]
+             @RIGHT: OFF ^RightCueLight;
+                     SET T(G) = H, E(G) = 40; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+             @LEFT: OFF ^LeftCueLight;
+                    SET T(G) = H; SET E(G) = 41; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> S3
+   
+
+
+
+
+
+
+S.S.7,   \ Levers extend
+  S1,
+    #START: ON ^RightLeverOut, ^LeftLeverOut; 
+            SET T(G) = H, E(G) = 10; ADD G; SET T(G) = H, E(G) = 11; ADD G; 
+            SET T(G) = -987.987, E(G) = -987.987 ---> SX
+
+
+
+
+
+
+S.S.8,  \ Session time display
+  S1,
+    #START: SHOW 1, SESS TIME(MIN): , A(5)/60 ---> S2
+  S2,
+    1": ADD A(5); SHOW 1, SESS TIME(MIN): , A(5)/60 ---> S2
+
+
+
+
+
+S.S.9,  \ Display 
+  S1,
+    #START: ---> S2
+  S2,
+    .4": SHOW 2, INFUSIONS: , Y;
+         SHOW 6, ACTIVE RT: , B(0); 
+         SHOW 7, ACTIVE LT: , B(1);
+         SHOW 11, INACTIVE RT: , B(2);
+         SHOW 12, INACTIVE LT: , B(3) ---> S2
+
+
+
+
+
+S.S.10,  \ Session timer and termination
+  S1,
+    #START: SET A(3) = (A(3)*60) * 1' ---> S2
+  S2,
+    0.01": ADD H; 
+           IF H <= A(3) [@NOEND, @YESEND]
+	   @NOEND: ---> SX
+           @YESEND: SET T(G) = H, E(G) = 100; SET T(G+1) = -987.987, E(G+1) = -987.987;
+                    SHOW 2, INFUSIONS: , Y;
+                    SHOW 6, ACTIVE RT: , B(0); 
+                    SHOW 7, ACTIVE LT: , B(1);
+                    SHOW 11, INACTIVE RT: , B(2);
+                    SHOW 12, INACTIVE LT: , B(3) ---> STOPABORTFLUSH

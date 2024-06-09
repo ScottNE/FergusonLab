@@ -1,0 +1,291 @@
+\
+\ *********************
+\
+\  ONELEVER_MAGTRAINING 
+\
+\ ********************* 
+\ Scott Ng-Evans (2005)
+\
+
+
+\
+\
+\ Magazine training on one lever which is always extended. 
+\ Magazine training is started with non-contingent delivery of pellets on a 
+\  VI (from list "V": 20", 30", 60", or 90"). This delivery ends when the animal
+\  presses the lever 10 times or in 15 minutes whichever comes first.
+\
+\ No cues (no cue lights or sonalert) for reinforcement delivery. 
+\
+\ Houselight indicates reward availability. When the houselight is off, no
+\   reinforcement is delivered with lever press.
+\
+\
+\ During time-out, the houselight is off and reinforcement is not available. 
+\
+\
+\ Revisions:
+\
+\               7-2009 - Matt Wanat wants the option to have the cue light on or off
+\
+\               5-2010 - Changed inputs and outputs for John Neumaier boxes per
+\                         request by Dan Eskenazi
+
+
+
+
+
+
+
+\ Input Constants
+
+^LeftLever  = 1
+^RightLever = 3
+^HeadEntry  = 5
+
+
+\ Output Constants (NOTE: Lever refers to extending or retracting)
+
+^Leftlv  = 1
+^Rightlv = 2
+^Feeder  = 3
+^Traylt  = 6  
+^Leftlt  = 4
+^Rightlt = 5
+^Houselt = 7
+\        = 8  **open
+^Fan     = 10  \NOT USED IN JN BOXES
+
+
+\ Z1 start trial event
+\ Z2 reinforcement completed event
+\ Z3 - Z10 (except Z5) - TTLs
+\ 
+\ Z3 - Pellet dleivery            - BIT 0
+\ Z4 - Head entry                 - BIT 1
+\ Z6 - Right lever press          - BIT 2
+\ Z7 - Left lever press           - BIT 3
+\
+\
+\
+\ Z5 dummy pulse for holding a state set in a state
+
+
+\ Variable Definitions:
+\ X = fixed ratio
+\ L(1) = number of left lever responses
+\ L(2) = number of left lever responses during intertrial interval
+\ R(1) = number of right lever responses
+\ R(2) = number of right lever responses during intertrial interval
+\ J(1) = number of head entries
+\ J(2) = number of head entries during ITI
+\ B(1) = number of right nose pokes
+\ B(2) = number of right nose pokes during ITI
+\ C(1) = number of left nose pokes
+\ C(2) = number of left nose pokes during ITI
+\ I = intertrial interval
+\ M = session length in minutes
+\ N = maximum magazine training length in minutes
+\ O = magazine training delivery timer
+\ H = current session time in 10 msec increments
+\ V = magazine training reinforcement delivery timer
+\ Y = number of reinforcers (correct responses)
+\ A = correct lever (1 = Right, 2 = Left)
+\ D = event time stamp
+\ E = event identity stamp
+\	3 - left lever press
+\	4 - right lever press
+\	5 - Reinforced left lever press
+\	6 - Reinforced right lever press
+\	7 - Head entry
+\	8 - Right nose poke
+\	9 - Left nose poke
+\	10 - Right lever response during intertrial interval
+\	11 - Left lever response during intertrial interval
+\	12 - Time-out for reinforcer availability has occurred
+\ 	13 - Time-out over and reinforcement available again
+\       14 - Head entry during intertrial interval
+\       15 - Right nose-poke during intertrial interval
+\       16 - Left nose-poke during intertrial interval
+\       19 - termination of magazine training
+\ G = event counter
+\ K = reinforcement number cutoff for magazine training
+\ S = Maximum number of reinforcers allowed
+\ F = switch for dynamically incrementing intertrial interval time (1 = ON)
+\ Z(0) = traylight switch (0:OFF 1:ON)
+\ Z(1) = Cue light switch (0:OFF 1:ON)
+
+VAR_ALIAS Session length (min) = M
+VAR_AlIAS Max magazine training lenth (min) = N
+VAR_ALIAS Active lever (1:Right   2:Left) = A
+VAR_ALIAS Cutoff # of reinforcers for magazine training = K
+VAR_ALIAS Maximum number of reinforcers = S
+VAR_ALIAS Fixed ratio = X
+VAR_ALIAS Use traylight? (0:NO 1:YES) = Z(0)
+VAR_ALIAS Use cue light? (0:NO 1:YES) = Z(1)
+
+
+DIM L = 3
+DIM R = 3
+DIM J = 3
+DIM B = 3
+DIM C = 3
+DIM D = 4000
+DIM E = 4000
+DIM Z = 10
+LIST V = 10",20",20",30",80"
+
+DISKVARS = X, L, R, J, B, C, I, M, N, Y, A, D, E, K, S
+
+
+S.S.1,  \ Reinforcement Controller state
+  S1,  
+      0.05": SET A = 1, K = 10, X = 1, I = 2, N = 15, M = 90, Y = 0, S = 100, F = 1, Z(0) = 1, Z(1) = 1 ---> S2
+  S2,  
+      #START: Z1 ---> S3
+  S3,
+      #Z2: ADD G; SET D(G) = H; SET E(G) = 12 ---> S4
+  S4,
+      I*100#T: ADD G; SET D(G) = H; SET E(G) = 13; Z1 ---> S3
+
+
+
+S.S.2,  \ Individual lever responses
+  S1,  
+    #START: ---> S2
+  S2,
+    1#R^LeftLever: ADD L(1); ADD G; SET D(G) = H; SET E(G) = 3; SHOW 2, "LEFT ", L(1); Z7 ---> SX
+    1#R^RightLever: ADD R(1); ADD G; SET D(G) = H; SET E(G) = 4; SHOW 2, "RIGHT ", R(1); Z6 ---> SX
+    #Z2: ---> S3
+  S3,
+    1#R^LeftLever: ADD L(2); ADD G; SET D(G) = H; SET E(G) = 11; SHOW 3, "LEFT (ITI) ", L(2); Z7 ---> SX
+    1#R^RightLever: ADD R(2); ADD G; SET D(G) = H; SET E(G) = 10; SHOW 3, "RIGHT (ITI)", R(2); Z6 ---> SX
+    #Z1: ---> S2
+
+
+
+S.S.3,  \ Completed FR
+  S1,  
+    #Z1: IF A = 1 [@RIGHTLEV, @LEFTLEV]
+             @RIGHTLEV: ---> S2
+             @LEFTLEV: ---> S3
+  S2,
+    X#R^RightLever: ADD Y; ADD G; SET D(G) = H; SET E(G) = 6; Z2 ---> S1 
+  S3,    
+    X#R^LeftLever: ADD Y; ADD G; SET D(G) = H; SET E(G) = 5; Z2 ---> S1
+
+
+
+S.S.4,  \ Head entry detector
+  S1,
+    #START: ---> S2
+  S2,
+    1#R^HeadEntry: ADD J(1); ADD G; SET D(G) = H; SET E(G) = 7; SHOW 4, "Head Ent", J(1); Z4 ---> SX
+    #Z2: ---> S3
+  S3,
+    1#R^HeadEntry: ADD J(2); ADD G; SET D(G) = H; SET E(G) = 14; SHOW 5, "Head Ent (ITI)", J(2); Z4 ---> SX
+    #Z1: ---> S2
+
+
+
+S.S.7,  \ Pellet feeder
+  S1,
+    #Z2: ON ^Feeder; Z3; SHOW 1, "Reinforcers", Y ---> S2
+  S2,
+    0.1": OFF ^Feeder ---> S1 
+
+
+
+S.S.8,  \ Tray light
+  S1,
+    #Z2: IF Z(0) = 1 [@TRAYLIGHT, @NOTRAYLIGHT]
+         @TRAYLIGHT: ON ^Traylt ---> S2
+         @NOTRAYLIGHT: ---> S2
+  S2,
+    1.7": OFF ^Traylt ---> S1
+
+
+
+
+S.S.9,  \ House light and fan.
+  S1,
+    0.05":ON ^Fan ---> S2
+  S2,
+    #START: ON ^Houselt ---> SX
+
+
+
+
+S.S.10,  \ Lever Cue Lights
+  S1,
+    #Z1: IF Z(1) = 0 [@NOCUELT, @CUELT]
+         @NOCUELT: OFF ^Rightlt, ^Leftlt ---> SX
+         @CUELT: IF A = 1 [@RIGHT, @LEFT]
+                 @RIGHT: ON ^Rightlt; OFF ^Leftlt ---> SX
+                 @LEFT: ON ^Leftlt; OFF ^Rightlt ---> SX
+
+  
+
+
+S.S.11,   \ Extend Active lever
+  S1,  
+    #Z1: IF A = 1 [@RIGHTLEV, @LEFTLEV]
+            @RIGHTLEV: ON ^Rightlv; OFF ^Leftlv ---> SX
+            @LEFTLEV: ON ^Leftlv; OFF ^Rightlv ---> SX
+
+
+
+S.S.12,   \ Magazine training timing
+  S1,
+    #Z1: IF (H < N*6000) AND (Y < K) [@VIsched, @FRsched]
+	    @VIsched: RANDD O = V ---> S2
+            @FRsced: ADD G; SET D(G) = H; SET E(G) = 19 ---> S3
+  S2,
+    O#T: Z2 ---> S1
+  S3,
+    #Z5: ---> SX
+
+
+
+S.S.13,  \ Session timer
+  S1,
+     #START: ---> S2
+  S2,
+     0.01": ADD H; IF (H < M*6000) AND (Y < S) [@NOEND, @YESEND]
+	     @NOEND: ---> SX
+             @YESEND: ---> S3
+  S3,
+    1": ADD G; SET D(G) = -987.987; SET E(G) = -987.987 ---> STOPABORTFLUSH
+
+
+
+
+
+
+
+S.S.14,  \TTLs  -
+  S1,
+    #Z3: ON 17 ---> S2
+  S2,
+    0.2": OFF 17 ---> S1
+
+
+S.S.15,
+  S1,
+    #Z4: ON 18 ---> S2
+  S2,
+    0.2": OFF 18 ---> S1
+
+
+S.S.16,
+  S1,
+    #Z6: ON 19 ---> S2
+  S2,
+    0.2": OFF 19 ---> S1
+
+
+S.S.17,
+  S1,
+    #Z7: ON 20 ---> S2
+  S2,
+    0.2": OFF 20 ---> S1

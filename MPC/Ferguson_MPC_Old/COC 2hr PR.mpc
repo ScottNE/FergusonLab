@@ -1,0 +1,97 @@
+\  Food Reinforcement
+\  Progressive Ratio on an Fr Schedule
+\  Based on procedure of Med Associate and Osnat Ben-Shahar, Psychology Dept. UCSB
+\  Version 1
+\ UPDATED FOR SEATTLE CHILDRENS 4/10/2012
+
+\  Constants are declared here and used through out the
+\  the procedure to clarify input and output functions:
+
+^LeftLever = 1   \  List all the outputs
+^RightLever = 2       \
+^Feeder = 3            \
+^LefttStimLight = 4    \ 
+^RightStimLight = 5    \  
+^Recepticlelight = 6
+^HouseLight = 7      \
+^tone = 8    \               
+^Pump = 9    \
+
+^RLeverRes = 3     \     List all the inputs 
+^RLeverPos = 4      \  
+^LLeverRes = 1        \  
+^LLeverPos = 2        \  
+
+
+\  Variables
+
+\    Array A = Responses on the right lever.
+\    Array B = Number of reinforces.
+\    C = Responses on Left (inactive) Lever
+\    D = Progressive Ratio
+\    E = Time, number of minutes passed since the start of the session
+\    F = Total number of responses on Right (active) Lever
+\    G = Total number of Reinforcements
+\  Dimension Arrays
+
+DIM A = 120
+DIM B = 120
+
+
+LIST D = 1, 2, 4, 9, 12, 15, 20, 25, 32, 40, 50, 62, 77, 95, 118, 145, 178, 219, 268, 328, 402, 492, 603, 737, 901, 1102, 1347, 1647, 2012, 2500, 3100
+
+\LIST D was derived from the following equation:
+\                 [  (injection number * 0.2)]  
+\response ratio = [5e                        ] - 5 (Richardson & Roberts, 1996) 
+
+PRINTVARS = C                  
+PRINTOPTIONS = 80, FORMFEEDS
+PRINTFORMAT = 6.1
+
+\  ****************  Main Program  ****************
+
+S.S.1,  \  Extend right levers when procedure "starts" 
+        \  turn rightstimlight for 1 sec when detecting required number of right
+        \  lever press
+
+S1,
+   #Start:ON ^RightLever,^LeftLever --->S2
+S2,
+  0.001': List X = D(R) ---> S3
+
+S3, 
+  X#R^RLeverRes:ADD B(E),G;ON^PUMP, ^tone, ^RightStimLight --->S4
+  29.98':Lockon^Rightlever --->S5 \ stops program after x min without a reinforcer
+     
+S4,   
+   4":OFF^PUMP, ^tone, ^RightStimLight --->S2
+   #R^RLeverRes:ADD  A(E),F --->SX
+
+S5,
+   0.01':Lockoff^Rightlever --->S6   
+
+S6,
+   0.02':OFF^Right Lever,^LeftLever ---> STOPABORTFLUSH
+
+S.S.2,  \  Record Responses on Right and Left Lever
+
+S1,
+   #R^LLeverRes:ADD C --->SX
+   #R^RLeverRes:ADD A(E),F --->SX
+   
+S.S.3,  \Record Time and Terminate Program after 120 minutes
+S1,
+  #START: --->S2
+S2,
+  1': ADD E; SHOW 1, LEFT LEVER, C; 
+     SHOW 2, RESPL,F;
+     SHOW 3, REINF,G;
+     SHOW 4, REALTTIME,E;
+
+  If E=120 [@end,@continue]
+    @end:---> STOPABORTFLUSH
+    @continue: --->SX
+
+
+
+
