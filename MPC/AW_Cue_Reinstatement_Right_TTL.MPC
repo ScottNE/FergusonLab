@@ -118,8 +118,12 @@
 \                      initiation of the 1 hour trial, time stamps for each active or
 \                      inactive lever press, and a time stamp for the end of the trial."
 \
+\                    - Added missed infusion TTL
 \
-\                    - This is AW_SF_COKED_SPIKING_Right_TTL and  AW_SF_COKED_SPIKING_Left_TTL
+\
+\                   - This is AW_Cue_Reinstatement_Right_TTL and AW_Cue_Reinstatement_Left_TTL
+\
+\
 \
 \
 \
@@ -256,23 +260,23 @@ LIST B = 10, 20, 30, 45, 65, 85, 115, 145, 185, 225, 275, 325, 385, 445, 515, 58
 
 
 
-VAR_ALIAS 01)-------------------------------------------------------------------- = A(26)
-VAR_ALIAS 02)Max session length(hour) = A(15)
-VAR_ALIAS 03)Max number of drug infusions = A(28)
-VAR_ALIAS 04)Fixed Ratio or PR (PR:-1) = X
-VAR_ALIAS 05)PR break pnt time-limit(min) = A(17)
-VAR_ALIAS 06)Active lever (0:right 1:left) = A(0)
-VAR_ALIAS 07)Detect headentries (0:No 1:Yes) = A(34)
-VAR_ALIAS 08)Houselight for pre-session cue period (0:off 1:on) = A(35)
-VAR_ALIAS 09)Houselight for drug periods (0:off 1:on) = A(29)
-VAR_ALIAS 10)Houselight for no-drug periods (0:off 1:on) = A(30)
-VAR_ALIAS 11)Number of drug periods(minimum 1) = A(1)
-VAR_ALIAS 12)Length of drug periods(min) = A(2)
-VAR_ALIAS 13)Length of no-drug periods(min) = A(3)
-VAR_ALIAS 14)Length pre-session cue period(sec) = A(31)
-VAR_ALIAS 15)Drug infusion time(sec 0:no infusion) = A(4)
-VAR_ALIAS 16)Post-inf time-out length(sec) = A(5)
-VAR_ALIAS 17)------------------------------------------------------------------- = A(27)
+VAR_ALIAS -------------------------------------------------------------------- = A(26)
+VAR_ALIAS Max session length(hour) = A(15)
+VAR_ALIAS Max number of drug infusions = A(28)
+VAR_ALIAS Fixed Ratio or PR (PR:-1) = X
+VAR_ALIAS PR break pnt time-limit(min) = A(17)
+VAR_ALIAS Active lever (0:right 1:left) = A(0)
+VAR_ALIAS Detect headentries (0:No 1:Yes) = A(34)
+VAR_ALIAS Houselight for pre-session cue period (0:off 1:on) = A(35)
+VAR_ALIAS Houselight for drug periods (0:off 1:on) = A(29)
+VAR_ALIAS Houselight for no-drug periods (0:off 1:on) = A(30)
+VAR_ALIAS Number of drug periods(minimum 1) = A(1)
+VAR_ALIAS Length of drug periods(min) = A(2)
+VAR_ALIAS Length of no-drug periods(min) = A(3)
+VAR_ALIAS Length pre-session cue period(sec) = A(31)
+VAR_ALIAS Drug infusion time(sec 0:no infusion) = A(4)
+VAR_ALIAS Post-inf time-out length(sec) = A(5)
+VAR_ALIAS ------------------------------------------------------------------- = A(27)
 
 
 
@@ -282,7 +286,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
           SET A(1)  = 1;      \ Number of drug periods (minumum = 1)
           SET A(2)  = 121;    \ Length of drug periods in minutes
           SET A(3)  = 0;      \ Length of no-drug periods in minutes
-          SET A(4)  = 2.8;      \ Drug infusion time in seconds, 0 for no infusion
+          SET A(4)  = 2.8;    \ Drug infusion time in seconds, 0 for no infusion
           SET A(5)  = 4;      \ Post-infusion time-out length in seconds
           SET A(15) = 1;      \ Maximum session length in hours
           SET A(17) = 60;     \ Progressive ratio (PR) break point time limit in minutes (if PR used - see X)
