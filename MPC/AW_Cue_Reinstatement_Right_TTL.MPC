@@ -127,6 +127,14 @@
 \
 \
 \
+\           7 - 2024 - Corrected starting ratio from 5 to 1
+\                    - Added Z-pulse TTL state sets that were inadvertently left off
+\
+\
+\
+\
+\\
+\
 
 \
 \
@@ -296,7 +304,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
           SET A(31) = 10;     \ Length of pre-session cue period in seconds
           SET A(34) = 0;      \ Detect headentries (0:No 1:Yes)
           SET A(35) = 0;      \ Houselight during pre-session period (0:off 1:on)
-          SET X     = 5;      \ Fixed ratio (if this is -1, a progressive ratio will run)
+          SET X     = 1;      \ Fixed ratio (if this is -1, a progressive ratio will run)
           SET D(0)  = -987.987;
           SET E(0)  = -987.987;
           ON ^Fan ---> S2
@@ -588,3 +596,46 @@ S.S.14,  \ Session timer and termination
                     IF A(34) = 1 [@HEADENTRIES, @NOHEADENTRIES]
                     @HEADENTRIES: SHOW 6, FOOD TRAY HEAD ENT: , A(16) ---> STOPABORTFLUSH
                     @NOHEADENTRIES:  ---> STOPABORTFLUSH
+
+
+
+
+
+\TTLs
+S.S.17,
+  S1,
+    #Z^StartSession_TTL: ON ^StartSession_TTL ---> S2
+  S2,
+    0.1": OFF ^StartSession_TTL ---> S1
+
+
+
+S.S.20,
+  S1,
+    #Z^ActivePress_TTL: ON ^ActivePress_TTL ---> S2
+  S2,
+    0.1": OFF ^ActivePress_TTL ---> S1
+
+
+
+S.S.21,
+  S1,
+    #Z^InactivePress_TTL: ON ^InactivePress_TTL ---> S2
+  S2,
+    0.1": OFF ^InactivePress_TTL ---> S1
+
+
+
+S.S.22,
+  S1,
+    #Z^MissedDrugInfusion_TTL: ON ^MissedDrugInfusion_TTL ---> S2
+  S2,
+    0.1": OFF ^MissedDrugInfusion_TTL ---> S1
+
+
+
+S.S.23,
+  S1,
+    #Z^EndSession_TTL: ON ^EndSession_TTL ---> S2
+  S2,
+    0.1": OFF ^EndSession_TTL ---> S1
