@@ -558,7 +558,9 @@ S.S.10,  \ Display
 
 S.S.11,  \ Drug and no-drug period countdown
   S1,
-    #START: SET A(14) = A(2)*60; SHOW 7, DRUG PERIOD SEC: , A(14) ---> S2
+    #START: IF A(40) > 0 [@BASELINE, @NOBASELINE]
+            @BASELINE: ---> S4
+            @NOBASELINE: SET A(14) = A(2)*60; SHOW 7, DRUG PERIOD SEC: , A(14) ---> S2
   S2,
     1": SUB A(14); IF A(14) < 0 [@NOMARK, @MARK]
         @NOMARK: ---> S2
@@ -569,6 +571,8 @@ S.S.11,  \ Drug and no-drug period countdown
         @NOMARK: ---> S3
         @MARK: SHOW 7, NO-DRUG PERIOD SEC: , A(14) ---> S3
     #Z1: SET A(14) = A(2)*60; SHOW 7, DRUG PERIOD SEC: , A(14) ---> S2
+  S4,
+    #Z1: SHOW 7, DRUG PERIOD SEC: , A(14) ---> S2
 
 
 
@@ -584,9 +588,29 @@ S.S.12,  \ Session time display
 
 
 
-S.S.13,  \ Drug and no-drug period presses
+S.S.13,  \ Baseline CntDwn display
   S1,
-    #START: ---> S2
+    #START: IF A(40) > 0 [@BASELINE, @NOBASELINE] 
+            @BASELINE: SET A() = A(40)*60;
+                       SHOW , BASELN CNTDWN: , A() ---> S2
+            @NOBASELINE: ---> S3
+  S2,
+    1": SUB A(); 
+        IF A() >= 0 [@DISPLAY, @NODISPLAY]
+        @DISPLAY: SHOW , BASELN CNTDWN: , A() ---> S2
+        @NODISPLAY: SHOW , BASELN CNTDWN: ,0 ---> S3
+   S3,
+     #START: ---> S3
+
+
+
+
+
+S.S.14,  \ Drug and no-drug period presses
+  S1,
+    #START: IF A(40) > 0 [@BASELINE, @NOBASELINE]
+            @BASELINE: ---> S4
+            @NOBASELINE: ---> S2
   S2,
     #Z3: ---> S3
     1#R^RightLeverIn: ADD A(21) ---> SX
@@ -595,12 +619,14 @@ S.S.13,  \ Drug and no-drug period presses
     #Z1: ---> S2
     1#R^RightLeverIn: ADD A(23) ---> SX
     1#R^LeftLeverIn: ADD A(24) ---> SX
+  S4,
+    #Z1: ---> S2
 
 
 
 
 
-S.S.14,  \ Session timer and termination
+S.S.15,  \ Session timer and termination
   S1,
     #START: ---> S2
   S2,
