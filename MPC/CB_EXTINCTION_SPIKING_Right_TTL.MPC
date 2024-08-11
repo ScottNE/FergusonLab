@@ -164,10 +164,10 @@
 ^Shock          = 12
 ^SyringePumpOff = 14
 
-^StartSession_TTL  = 17  \\GPIO1
-^ActivePress_TTL   = 18  \\GPIO2
-^InactivePress_TTL = 19  \\GPIO3
-^Infusion_TTL      = 20  \\GPIO4
+^StartSession_TTL    = 17  \\GPIO1
+^ActivePress_TTL     = 18  \\GPIO2
+^InactivePress_TTL   = 19  \\GPIO3
+^MissedInfusion_TTL  = 20  \\GPIO4
 
 
 
@@ -258,6 +258,7 @@
 \      47  - Green cue light off
 \      48  - Basleine starts
 \      49  - Baseline ends
+\      50  - Missed infusion
 \     100  - End session marker
 \
 \ F = FR countdown variable for right
@@ -439,15 +440,14 @@ S.S.3,  \ Post reward, time-out and No-drug period presses
 
 
 
-S.S.4,  \ Infusion
+S.S.4,  \ Missed Infusion
   S1,
     #Z2: ---> S2
   S2,
-    0.01": ON ^SyringePumpOn; Z^Infusion_TTL;
-           SET D(G) = H; SET E(G) = 5; ADD G, Y; SET D(G) = -987.987; SET E(G) = -987.987 ---> S3
+    0.01": Z^MissedInfusion_TTL;
+           SET D(G) = H; SET E(G) = 50; ADD G, Y; SET D(G) = -987.987; SET E(G) = -987.987 ---> S3
   S3,
-    A(4)*100#T: OFF ^SyringePumpOn; SET D(G) = H; SET E(G) = 6; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                IF A(5) = 0 [@NOTO, @TO]
+    A(4)*100#T: IF A(5) = 0 [@NOTO, @TO]
                 @NOTO: ---> S5
                 @TO: ---> S4
   S4,
@@ -652,7 +652,7 @@ S.S.15,  \ Session timer and termination
            @NOEND: ---> S2
            @YESEND: IF S.S.4 = 1 [@END, @WAIT]
                     @END: SET D(G) = H, E(G) = 100; SET D(G+1) = -987.987, E(G+1) = -987.987;
-                          SHOW 1,  INFUSIONS: , Y;
+                          SHOW 1,  MISSED INFUSIONS: , Y;
                           SHOW 2,  ACTIVE RIGHT: , A(10);
                           SHOW 3,  ACTIVE LEFT: , A(11);
                           SHOW 4,  INACTIVE RIGHT: , A(12);
@@ -698,8 +698,8 @@ S.S.21,
 
 S.S.22,
   S1,
-    #Z^Infusion_TTL: ON ^Infusion_TTL ---> S2
+    #Z^MissedInfusion_TTL: ON ^MissedInfusion_TTL ---> S2
   S2,
-    0.1": OFF ^Infusion_TTL ---> S1
+    0.1": OFF ^MissedInfusion_TTL ---> S1
 
 
