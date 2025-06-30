@@ -382,26 +382,26 @@ S.S.3,  \ All drug and no-drug period presses recorded and cumulated
   S2,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                              ADD A(10);---> SX
+                              ADD A(10) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                             ADD A(12);
+                             ADD A(12) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                             ADD A(12);---> SX
+                             ADD A(12) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                            ADD A(10);
+                            ADD A(10) ---> SX
     #Z3: ---> S3
   S3,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                              ADD A(11);
+                              ADD A(11) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                             ADD A(13);---> SX
+                             ADD A(13) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                             ADD A(13);
+                             ADD A(13) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987; 
-                            ADD A(11);---> SX
+                            ADD A(11) ---> SX
     #Z1: ---> S2
     
 
@@ -425,7 +425,7 @@ S.S.4,  \ Infusion - extinction(all timing and signals are the same but no infus
           @NOTO: ---> S5
           @TO: ---> S4
   S4,
-   ((A(36)-A(35))#T: Z1 ---> S1
+   (A(36)-A(35))#T: Z1 ---> S1
   S5,
     0": Z1 ---> S1   \1 TICK BEFORE Z1
   S6,
@@ -435,7 +435,7 @@ S.S.4,  \ Infusion - extinction(all timing and signals are the same but no infus
           @NOTO: ---> S9
           @TO: ---> S8
   S8,
-   ((A(36)-A(35))#T: Z1 ---> S1
+   (A(36)-A(35))#T: Z1 ---> S1
   S9,
     0": Z1 ---> S1   \1 TICK BEFORE Z1
 
@@ -550,7 +550,7 @@ S.S.12,  \ Session timer and termination
     #START: ---> S2
   S2,
     0.01": ADD H; 
-           IF (A(7) = 0) AND (H <= A(39) AND (Y(0) < A(28)) [@NOEND, @YESEND]
+           IF (A(7) = 0) AND (H <= A(39)) AND (Y(0) < A(28)) [@NOEND, @YESEND]
 	       @NOEND: ---> S2
            @YESEND: IF S.S.4 = 1 [@END, @WAIT]
                     @END: SET D(G) = H, E(G) = 100; ADD G; SET D(G) = -987.987, E(G) = -987.987;
