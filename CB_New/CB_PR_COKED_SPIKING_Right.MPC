@@ -126,6 +126,14 @@
 \                            - Added option for extinction in infusion duration, 0:extinction
 \
 \                - This is CB_FR_COKED_SPIKING_Left and CB_FR_COKED_SPIKING_Right (PR for PR versions)
+\
+\
+\
+\
+\        7 - 2025 - C. Burke - requests PR start with ratio of 1
+\
+\
+\
 
 
 
@@ -244,7 +252,7 @@ DIM D = 50000
 DIM E = 50000
 DIM Y = 1
 
-LIST B = 5, 10, 20, 30, 45, 65, 85, 115, 145, 185, 225, 275, 325, 385, 445, 515, 585, 665, 745, 835, 925, 1025, 1125, 1235, 1345, 1465, 1585
+LIST B = 1, 5, 10, 20, 30, 45, 65, 85, 115, 145, 185, 225, 275, 325, 385, 445, 515, 585, 665, 745, 835, 925, 1025, 1125, 1235, 1345, 1465, 1585
 
 
 

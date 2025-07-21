@@ -286,7 +286,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
           SET A(29) = 0;       \ Houselight during the drug periods (0:off 1:on)
           SET A(30) = 1;       \ Houselight for no-drug periods (0:off 1:on)
           SET A(31) = 0;       \ Retract levers during no-drug periods (0:no 1:yes)
-          SET A(32) = 1;       \ Cue lt on time after infusion initiation(sec)
+          SET A(32) = 2.8;     \ Cue lt on time after infusion initiation(sec)
           SET D(0) = -987.987, E(0) = -987.987; \ Time and date stamp arrays
           SET X = 1;           \ Fixed ratio or PR (PR:-1)
           ON ^Fan ---> S2
