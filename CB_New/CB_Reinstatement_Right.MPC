@@ -267,6 +267,10 @@
 \      48  - Pre-session cue period ends
 \      49  - Pre-session cue period active lever press
 \      50  - Pre-session cue period inactive lever press
+\      60  - Active lever press in drug period
+\      61  - Inactive lever press in drug period
+\      62  - Active lever press in no-drug period
+\      63  - Inactive lever press in no-drug period
 \     100  - End session marker
 \
 \ F = FR countdown variable
@@ -328,7 +332,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
           SET A(30) = 1;       \ Houselight for no-drug periods (0:off 1:on)
           SET A(31) = 0;       \ Retract levers during no-drug periods (0:no 1:yes)
           SET A(32) = 4;       \ Cue lt on time after infusion initiation(sec)
-          SET A(40) = 10;      \Length pre-session cue period(sec)
+          SET A(40) = 10;      \ Length pre-session cue period(sec)
           SET D(0) = -987.987, E(0) = -987.987; \ Time and date stamp arrays
           SET X = 1;           \ Fixed ratio or PR (PR:-1)
           ON ^Fan ---> S2
@@ -443,30 +447,38 @@ S.S.2,  \ Fixed and Progressive Ratio and pre-session presses
 
 S.S.3,  \ All drug and no-drug period presses recorded and cumulated
   S1,
-    #Z5: ---> S2
+    #START: ---> S2
   S2,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                              SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(10) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                            SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                             ADD A(10) ---> SX
     #Z3: ---> S3
   S3,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                              SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(11) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                            ADD A(11) ---> SX
+                            SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             ADD A(11) ---> SX
     #Z4: ---> S2
 
 
@@ -541,7 +553,10 @@ S.S.6,  \ Houselight
 
 S.S.7,   \ Lever Cue lights
   S1,
-    #START: ---> S2
+    #START: SET D(G) = H, E(G) = 38; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+            IF A(0) = 0 [@RIGHT, @LEFT]
+            @RIGHT: ON ^RightCueLight; OFF ^LeftCueLight  ---> S4
+            @LEFT:  ON ^LeftCueLight; OFF ^RightCueLight  ---> S4
   S2,
     #Z2: IF A(38) > 0 [@CUELT, @NOCUELT]
          @CUELT: IF A(0) = 0 [@RIGHT, @LEFT]
@@ -554,6 +569,9 @@ S.S.7,   \ Lever Cue lights
     A(38)#T: IF A(0) = 0 [@RIGHT, @LEFT]
              @RIGHT: OFF ^RightCueLight; SET D(G) = H, E(G) = 40; ADD G; SET D(G) = -987.987; SET E(G) = -987.987 ---> S2
              @LEFT:  OFF ^LeftCueLight; SET D(G) = H, E(G) = 40; ADD G; SET D(G) = -987.987; SET E(G) = -987.987  ---> S2
+  S4,
+    #Z5: OFF ^RightCueLight; OFF ^LeftCueLight;
+         SET D(G) = H, E(G) = 40; ADD G; SET D(G) = -987.987; SET E(G) = -987.987 ---> S2
 
 
 

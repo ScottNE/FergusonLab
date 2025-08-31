@@ -244,6 +244,10 @@
 \      44  - Drug period starts
 \      45  - No-drug period starts
 \      46  - Missed infusion during extinction (left in solely for time stamping the trial progression)
+\      60  - Active lever press in drug period
+\      61  - Inactive lever press in drug period
+\      62  - Active lever press in no-drug period
+\      63  - Inactive lever press in no-drug period
 \     100  - End session marker
 \
 \ F = FR countdown variable
@@ -407,26 +411,34 @@ S.S.3,  \ All drug and no-drug period presses recorded and cumulated
   S2,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                              SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(10) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                            SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                             ADD A(10) ---> SX
     #Z3: ---> S3
   S3,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                       @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                              SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(11) ---> SX
                       @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
                      @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
                      @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                            ADD A(11) ---> SX
+                            SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                             ADD A(11) ---> SX
     #Z4: ---> S2
 
 
