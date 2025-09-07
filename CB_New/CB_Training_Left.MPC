@@ -358,36 +358,22 @@ S.S.2,  \ Fixed and Progressive Ratio
               @LEFT:  ---> S2
          @FR: SET U = X, F = X;
               IF A(0) = 0 [@RIGHT, @LEFT]
-              @RIGHT: ---> S6
-              @LEFT:  ---> S5
-    #Z3: ---> S7
+              @RIGHT: ---> S3
+              @LEFT:  ---> S2
+    #Z3: ---> S4
   S2,
     1#R^LeftLeverIn: SUB U;
                      IF U <= 0 [@FRDONE, @FRNOTDONE]
                      @FRDONE: Z2 ---> S1
                      @FRNOTDONE: ---> S2
-    #Z3: ---> S7
+    #Z3: ---> S4
   S3,
     1#R^RightLeverIn: SUB F;
                       IF F <= 0 [@FRDONE, @FRNOTDONE]
                       @FRDONE: Z2 ---> S1
                       @FRNOTDONE: ---> S3
-    #Z3: ---> S7
+    #Z3: ---> S4
   S4,
-    1": ---> SX
-  S5,
-    1#R^LeftLeverIn: SUB U;
-                     IF U <= 0 [@FRDONE, @FRNOTDONE]
-                     @FRDONE: Z2 ---> S1
-                     @FRNOTDONE: ---> S5
-    #Z3: ---> S7
-  S6,
-    1#R^RightLeverIn: SUB F;
-                      IF F <= 0 [@FRDONE, @FRNOTDONE]
-                      @FRDONE: Z2 ---> S1
-                      @FRNOTDONE: ---> S6
-    #Z3: ---> S7
-  S7,
     #Z4: IF A(18) = -1 [@PR, @FR]
          @PR: SET A(19) = X; LIST X = B(C(0)); SET U = X, F = X;
               SET A(37) = A(17) * 1';
@@ -396,8 +382,8 @@ S.S.2,  \ Fixed and Progressive Ratio
               @LEFT:  ---> S2
          @FR: SET U = X, F = X;
               IF A(0) = 0 [@RIGHT, @LEFT]
-              @RIGHT: ---> S6
-              @LEFT:  ---> S5
+              @RIGHT: ---> S3
+              @LEFT:  ---> S2
 
 
 

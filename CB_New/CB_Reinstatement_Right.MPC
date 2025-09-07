@@ -400,36 +400,22 @@ S.S.2,  \ Fixed and Progressive Ratio and pre-session presses
               @LEFT:  ---> S4
          @FR: SET U = X, F = X;
               IF A(0) = 0 [@RIGHT, @LEFT]
-              @RIGHT: ---> S8
-              @LEFT:  ---> S7
-    #Z3: ---> S9
+              @RIGHT: ---> S5
+              @LEFT:  ---> S4
+    #Z3: ---> S6
   S4,
     1#R^LeftLeverIn: SUB U;
                      IF U <= 0 [@FRDONE, @FRNOTDONE]
                      @FRDONE: Z2 ---> S3
                      @FRNOTDONE: ---> S4
-    #Z3: ---> S9
+    #Z3: ---> S6
   S5,
     1#R^RightLeverIn: SUB F;
                       IF F <= 0 [@FRDONE, @FRNOTDONE]
                       @FRDONE: Z2 ---> S3
                       @FRNOTDONE: ---> S5
-    #Z3: ---> S9
+    #Z3: ---> S6
   S6,
-    1": ---> SX
-  S7,
-    1#R^LeftLeverIn: SUB U;
-                     IF U <= 0 [@FRDONE, @FRNOTDONE]
-                     @FRDONE: Z2 ---> S3
-                     @FRNOTDONE: ---> S7
-    #Z3: ---> S9
-  S8,
-    1#R^RightLeverIn: SUB F;
-                      IF F <= 0 [@FRDONE, @FRNOTDONE]
-                      @FRDONE: Z2 ---> S3
-                      @FRNOTDONE: ---> S8
-    #Z3: ---> S9
-  S9,
     #Z4: IF A(18) = -1 [@PR, @FR]
          @PR: SET A(19) = X; LIST X = B(C(0)); SET U = X, F = X;
               SET A(37) = A(17) * 1';
@@ -438,8 +424,8 @@ S.S.2,  \ Fixed and Progressive Ratio and pre-session presses
               @LEFT:  ---> S4
          @FR: SET U = X, F = X;
               IF A(0) = 0 [@RIGHT, @LEFT]
-              @RIGHT: ---> S8
-              @LEFT:  ---> S7
+              @RIGHT: ---> S5
+              @LEFT:  ---> S4
 
 
 
