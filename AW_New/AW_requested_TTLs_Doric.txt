@@ -1,0 +1,4 @@
+(1) program onset from Med associates, 
+(2) onset of the 5 min drug available periods, 
+(3) active lever presses, and 
+(4) inactive lever presses.
