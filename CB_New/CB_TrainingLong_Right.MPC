@@ -152,6 +152,9 @@
 \                                  infusions per day of training could be up to 30)
 \                                  Once 10 infusions are met, move to next no drug period
 \
+\                               - CB requests event codes 3 and 4 (active and inactive presses) be 
+\                                  removed as they are redundant
+\
 \
 \         - This is CB_TrainingLong
 
@@ -238,8 +241,6 @@
 \
 \ D = event time stamp
 \ E = event identity stamp
-\       3  - Active lever press
-\       4  - Inactive lever press
 \       5  - Infusion start
 \       6  - Infusion end
 \       7  - Food tray head entry
@@ -315,7 +316,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
           SET A(3)  = 15;      \ Length of no-drug periods (min)
           SET A(4)  = 2.8;     \ Drug infusion time (sec) - 0:extinction
           SET A(5)  = 1.2;     \ Post-infusion time-out length (sec)
-          SET A(15) = 1;       \ Maximum session length (hours)
+          SET A(15) = 3;       \ Maximum session length (hours)
           SET A(17) = 60;      \ Break point time-limit in minutes, when enough time elapses since last response to end session and record break point
           SET A(28) = 30;      \ Maximum number of drug infusions
           SET A(29) = 0;       \ Houselight during the drug periods (0:off 1:on)
@@ -420,34 +421,26 @@ S.S.3,  \ All drug and no-drug period presses recorded and cumulated
     #START: ---> S2
   S2,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
-                      @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                              SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                      @RIGHT: SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(10) ---> SX
-                      @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                      @LEFT: SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
-                     @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                             SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                     @RIGHT: SET D(G) = H, E(G) = 61; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(12) ---> SX
-                     @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                            SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                     @LEFT: SET D(G) = H, E(G) = 60; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                             ADD A(10) ---> SX
     #Z3: ---> S3
   S3,
     1#R^RightLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
-                      @RIGHT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                              SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                      @RIGHT: SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                               ADD A(11) ---> SX
-                      @LEFT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                      @LEFT: SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
     1#R^LeftLeverIn: IF A(0) = 0 [@RIGHT, @LEFT]
-                     @RIGHT: SET D(G) = H, E(G) = 4; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                             SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                     @RIGHT: SET D(G) = H, E(G) = 63; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(13) ---> SX
-                     @LEFT: SET D(G) = H, E(G) = 3; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
-                            SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
+                     @LEFT: SET D(G) = H, E(G) = 62; ADD G; SET D(G) = -987.987; SET E(G) = -987.987;
                              ADD A(11) ---> SX
     #Z4: ---> S2
 
