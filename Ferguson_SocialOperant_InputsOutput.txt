@@ -1,0 +1,31 @@
+Ferguson social operant inputs/outputs:
+
+Outputs -
+1 - Left lever (door side)
+2 - Right lev (feeder side)
+3 - Feeder
+4 - Guillotine door
+5 - 
+6 - Sonalert
+7 - Houselight
+8 - Pump
+9 - Left lever light
+10 - Right lever light
+11 -
+12 -
+13 -
+14 -
+15 - Red light
+16 - Fan
+
+
+Inputs - 
+1 - Left retractable lever in
+2 - Right retractable lever in
+3 -
+4 - Nonretractable lever in
+5 -
+6 -
+7 -
+8 -
+

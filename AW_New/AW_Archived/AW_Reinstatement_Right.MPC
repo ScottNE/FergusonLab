@@ -327,13 +327,13 @@ S.S.1,  \ Default set-up, drug/no-drug switching
   S1,
       0": SET A(0)  = 0;       \ Active lever (0:right 1:left)
           SET A(1)  = 1;       \ Number of drug periods (minimum 1)
-          SET A(2)  = 60;     \ Length of drug periods (min)
+          SET A(2)  = 120;     \ Length of drug periods (min)
           SET A(3)  = 0;       \ Length of no-drug periods (min)
           SET A(4)  = 0;       \ Drug infusion time (sec) - 0:extinction
           SET A(5)  = 4;       \ Post-infusion time-out length (sec)
-          SET A(15) = 1;       \ Maximum session length (hours)
+          SET A(15) = 2;       \ Maximum session length (hours)
           SET A(17) = 60;      \ Break point time-limit in minutes, when enough time elapses since last response to end session and record break point
-          SET A(28) = 400;     \ Maximum number of drug infusions
+          SET A(28) = 200;     \ Maximum number of drug infusions
           SET A(29) = 0;       \ Houselight during the drug periods (0:off 1:on)
           SET A(30) = 1;       \ Houselight for no-drug periods (0:off 1:on)
           SET A(31) = 0;       \ Retract levers during no-drug periods (0:no 1:yes)

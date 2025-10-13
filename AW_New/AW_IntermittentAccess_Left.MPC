@@ -169,12 +169,13 @@
 ^Fan            = 10
 ^SyringePumpOff = 14
 
-^SessionStart_TTL    = 17
+\ these TTLs are different for the IntA SA program, where the drug availability period onset is more important than session start
+
+^DrugPeriodStart_TTL = 17
 ^ActivePress_TTL     = 18
 ^InactivePress_TTL   = 19
 ^DrugInfusion_TTL    = 20
-^DrugPeriodStart_TTL = 21
-
+^SessionStart_TTL    = 21
 
 
 
