@@ -339,7 +339,7 @@ S.S.1,  \ Default set-up, drug/no-drug switching
                ADD A(6);
                SET D(G) = H, E(G) = 44; ADD G; SET D(G) = -987.987, E(G) = -987.987 ---> S3
   S5,
-     .01": IF S.S.4 = 1 [@SWITCH, @WAIT]
+     .01": IF S.S.4 = 2 [@SWITCH, @WAIT]
            @SWITCH: IF A(6) >= A(1) [@END, @NOEND]
                     @END:  SET A(7) = 1 ---> S6
                     @NOEND: Z3; SET D(G) = H, E(G) = 45; ADD G; SET D(G) = -987.987, E(G) = -987.987 ---> S4
