@@ -129,7 +129,7 @@
 \ E() = event identity stamps
 \       1  - Door opens
 \       2  - Door closes
-\       3  - Active lever press
+\       3  - Active lever press during FR
 \       4  - House light on
 \       5  - House light off
 \       6  - Tone on
@@ -138,7 +138,7 @@
 \       9  - Active lever retracts
 \      10  - Inactive lever extends
 \      11  - Inactive lever retracts
-\      12  - Inactive lever press
+\      12  - Inactive lever press during FR
 \      13  - Trial starts
 \      14  - Trial ends
 \      15  - Active lever cue light on
@@ -189,7 +189,7 @@ S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
   S1,
     0": SET A(0)  = 60;     \Session length (min)
         SET A(1)  = 0;      \Pre lever extension time (sec)
-        SET A(2)  = 0;      \Time limit to press the lever for door open (sec)
+        SET A(2)  = 0;      \Time limit to press the lever for door open (sec  0:No limit)
         SET A(3)  = 0;      \Reward tone duration (sec)
         SET A(4)  = 60;     \Social interaction time (sec)
         SET A(5)  = 1;      \Fixed ratio
@@ -203,7 +203,7 @@ S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
     #START: ADD C(1) ---> S3
   S3,
     #Z4!#Z5: ADD C(1);
-             IF C(1) > A(0) [@END, @NOTEND]
+             IF H >= (A(0)*6000) [@END, @NOTEND]
              @END: ---> SX
              @NOTEND: Z9;
                       SET T(G) = H, E(G) = 17; ADD G;
@@ -316,10 +316,10 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
   S1,
     #Z6: SET B(3) = A(5);
          IF A(6) = 0 [@LEFT, @RIGHT]
-         @LEFT: IF B(5) = 0 [@NOTL, @TL]
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
                 @TL: SET B(5) = A(2) * 1" ---> S2
-         @RIGHT: IF B(5) = 0 [@NOTL, @TL]
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
                  @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
                  @TL: SET B(5) = A(2) * 1" ---> S3
   S2,
@@ -339,7 +339,7 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
             SET T(G) = H, E(G) = 19; ADD G;
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
-            @NORETRACT: ---> S4
+            @NORETRACT: ---> S6
             @RETRACT: ---> S1
   S3,
     1#R^RightLevIn: SUB B(3); ADD C(3);
@@ -358,7 +358,7 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
             SET T(G) = H, E(G) = 19; ADD G;
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
-            @NORETRACT: ---> S5
+            @NORETRACT: ---> S7
             @RETRACT: ---> S1
   S4, \\ Social period lever presses
     1#R^LeftLevIn: ADD C(3), C(7);
@@ -383,10 +383,14 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
     1#R^RightLevIn: ADD C(4), C(6);
                     SET T(G) = H, E(G) = 21; ADD G;
                     SET T(G) = -987.987, E(G) = -987.987 ---> SX
-    #Z1: SET B(3) = A(5), B(5) = A(2) * 1";
+    #Z1: SET B(3) = A(5);
          IF A(6) = 0 [@LEFT, @RIGHT]
-         @LEFT: ---> S2
-         @RIGHT: ---> S3
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
   S7, \\ TO lever presses
     1#R^RightLevIn: ADD C(3), C(5);
                     SET T(G) = H, E(G) = 20; ADD G;
@@ -394,10 +398,14 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
     1#R^LeftLevIn: ADD C(4), C(6);
                    SET T(G) = H, E(G) = 21; ADD G;
                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
-    #Z1: SET B(3) = A(5), B(5) = A(2) * 1";
+    #Z1: SET B(3) = A(5);
          IF A(6) = 0 [@LEFT, @RIGHT]
-         @LEFT: ---> S2
-         @RIGHT: ---> S3
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
 
 
 
@@ -448,7 +456,7 @@ S.S.9,  \ TIME LIMIT TO PRESS TIMER DISPLAY
 
 S.S.10,  \ TO TIMER DISPLAY
   S1,
-    #Z4!#Z5: IF (C(1) > A(0)) [@YESEND, @NOEND]
+    #Z4!#Z5: IF (H >= (A(0)*6000)) [@YESEND, @NOEND]
              @YESEND: ---> SX
              @NOEND: SET B(8) = A(7);
                      SHOW 9, TO CntDwn: , B(8) ---> S2
@@ -475,7 +483,7 @@ S.S.11,  \ DATA DISPLAY
          SHOW 11, Inactive TO press: , C(6);
          SHOW 22, Active soc int press: , C(7);
          SHOW 23, Inactive soc int press: , C(8);
-         IF C(1) > A(0) [@YESEDND, @NOEND]
+         IF H >= (A(0)*6000) [@YESEDND, @NOEND]
          @YESEND: ---> S3
          @NOEND: SHOW 1, Trial: , C(1) ---> S2
   S3,

@@ -328,7 +328,7 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
             SET T(G) = H, E(G) = 19; ADD G;
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
-            @NORETRACT: ---> S4
+            @NORETRACT: ---> S6
             @RETRACT: ---> S1
   S3,
     1#R^RightLevIn: SUB B(3); ADD C(3);
@@ -347,7 +347,7 @@ S.S.7,   \ RECORD LEVER PRESSES, FIXED RATIO
             SET T(G) = H, E(G) = 19; ADD G;
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
-            @NORETRACT: ---> S5
+            @NORETRACT: ---> S7
             @RETRACT: ---> S1
   S4, \\ Social period lever presses
     1#R^LeftLevIn: ADD C(3), C(7);
