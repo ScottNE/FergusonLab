@@ -164,6 +164,7 @@
 \      21  - Inactive lever press during TO
 \      22  - Active lever press during social interaction period
 \      23  - Inactive lever press during social interaction period
+\      24  - PR break point reached
 \     100  - End session marker
 \
 \ F  = FR countdown variable
@@ -261,7 +262,7 @@ S.S.3,  \ PR BREAK POINT
   S2,
     #Z6: SET B(11) = A(10) * 1' ---> S3
   S3,
-    #Z4!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
+    #Z3!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
              @NORETRACT: ---> S4
              @RETRACT: ---> S2
     B(11)#T: SET A(11) = X(0);
@@ -272,11 +273,14 @@ S.S.3,  \ PR BREAK POINT
              SHOW 10, Active TO press: , C(5);
              SHOW 11, Inactive TO press: , C(6);
              SHOW 12, Break point: , A(11);
+             SHOW 14, Break Pnt CntDwn: , 0;
              SHOW 22, Active soc int press: , C(7);
              SHOW 23, Inactive soc int press: , C(8);
-             SET T(G) = H, E(G) = 100; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
+             SET T(G) = H, E(G) = 24; ADD G;
+             SET T(G) = H, E(G) = 100; ADD G;
+             SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
   S4,
-    #Z1: SET B(11) = A(10) * 1' ---> S2
+    #Z1: SET B(11) = A(10) * 1' ---> S3
 
 
 
@@ -541,11 +545,9 @@ S.S.13,  \ BREAK POINT TIME-LIMIT DISPLAY
   S2,
     #Z6: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
   S3,
-    #Z4!#Z5: ---> S4
+    #Z3!#Z5: ---> S4
     1": SUB B(12);
-        IF B(12) >= 0 [@DISPLAY, @NODISPLY]
-        @DISPLAY: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
-        @NODISPLAY: SHOW 14, Break Pnt CntDwn: , 0 ---> S4
+        SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
   S4,
     #Z1: SET B(12) = A(10) * 60;
          IF A(8) = 0 [@NORETRACT, @RETRACT]
