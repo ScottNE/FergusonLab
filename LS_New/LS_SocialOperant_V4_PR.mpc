@@ -1,0 +1,608 @@
+\
+\ Scott Ng-Evans (2025)
+\
+\
+\ 11-01-2025 : L. Salinsky - "Train rats to self-administer for
+\              access to their social partner during daily 120-min sessions
+\             (60 trials/session, 60 s social interaction) using a discrete
+\             trial design. Each resident rat lever presses for its previously
+\             paired partner. First bring the rats from the facility and move
+\             them from their home cage to their assigned side of the operant
+\             chamber (residents and partners). Start the session by uploading
+\             the Med-PC social self-administration program that, once issued,
+\             will automatically start the session with illumination of the
+\             social-paired houselight followed 10 s later by insertion of
+\             the social-paired lever; we allow resident rats, via the Med-PC
+\             social self-administration program, 60 s to press the active lever
+\             (fixed-ratio-1 reinforcement schedule) before lever retraction and
+\             houselight turning off. CRITICAL STEP Successful lever presses from
+\             the resident rats cause the retraction of the active lever, a discrete
+\             20-s tone cue, and opening of the guillotine-style sliding door.
+\             Resident rats are subsequently allowed to interact with their social
+\             partner for 60 s until the houselight turns off, at which point the
+\             guillotine door closed. Record the number of successful trials
+\             and inactive lever presses."
+\
+\
+\                    - This is LS_SocialOperant_V1
+\
+\
+\
+\ Revisions:
+\
+\ 11-08-2025 : L. Salinsky - "Would it be possible to have one other
+\              program that is a 1 hour session, FR1 (with the option to increase the
+\              FR) where when the FR is reached, the social door opens for 60 seconds,
+\              with the cue light for 6 seconds and then a 30 second ITI where all
+\              responses during the ITI are also recorded for lever presses?"
+\
+\            : Cue light is lever cue light.
+\
+\            : This is LS_SocialOperant_V2
+\
+\
+\
+\ 11-19-2025 : L. Salinsky - "Is it possible
+\  to have it more like the drug self admin
+\  programs, where it is just an hour, and
+\  instead of an ITI we have a timeout period
+\  for 30s? So that theoretically a rat could
+\  self administers as much as they wanted?"
+\
+\            : This is LS_SocialOperant_V3
+\
+\
+\
+\ 1-17-2026 : L. Salinsky - "Would it be
+\  possible to also have a PR version
+\  of this program that matches our
+\  drug PR program"
+\
+\           : This is LS_SocialOperant_V4_FR and LS_SocialOperant_V4_PR
+\
+
+
+
+
+\ Input Constants
+^LeftLevIn   = 1
+^RightLevIn  = 2
+^FixedLev    = 4
+
+
+\ Output Constants
+^LeftLevOut  = 1
+^RightLevOut = 2
+^Feeder      = 3
+^Door        = 4
+^Sonalert    = 6
+^HouseLt     = 7
+^Pump        = 8
+^LeftLevLt   = 9
+^RightLevLt  = 10
+^RedLt       = 15
+^Fan         = 16
+
+
+
+
+\ Z-Pulses
+\
+\ Z1 - Trial start
+\ Z2 - Ratio complete
+\ Z3 - Door opens
+\ Z4 - Door closes
+\ Z5 - Time out due to no lever press within time limit
+\ Z6 - Levers extend
+\ Z7 - Levers retract
+\ Z8 - Press that resets press time limit timer
+\ Z9 - Trial ends, TO starts
+
+
+
+\ Variable Definitions:
+
+\ A(0)  = Session length (min)
+\ A(1)  = Delay between houselt on at trial start and lever extension (sec)
+\ A(2)  = Time limit to initiate response ratio (sec , 0:No limit)
+\ A(3)  = Duration of tone after lever press - reward tone (sec)
+\ A(4)  = Time allowed for social interaction (sec)
+\ A(5)  = Response ratio for lever pressing (0:PR)
+\ A(6)  = Active lever (0:Left 1:Right)
+\ A(7)  = Inter-trial interval (sec)
+\ A(8)  = Retract levers for TO (0:No 1:Yes)
+\ A(9)  = Lev cue lt duration (sec)
+\ A(10) = PR break pnt time-limit(min), time to complete current ratio
+\ A(11) = Break point recorded
+\
+\ B(0)  = Social interaction time, A(4), in system time
+\ B(1)  = Delay between houselt on and lever extension, A(1), in system time
+\ B(2)  = Duration of reward tone after lever press, A(3), in system time
+\ B(3)  = Used to count down the ratio with lever presses
+\ B(4)  = Used to display count down for social interaction time
+\ B(5)  = Time limit to press active lever, A(2), in system time
+\ B(6)  = Used to display count down fo time limit to press
+\ B(7)  = TO, A(7), in system time
+\ B(8)  = Used to display TO count down in sec
+\ B(9)  = Used to display session time (min)
+\ B(10) = Lev cue lt duration, A(9), in system time
+\ B(11) = PR break point time limit; time limit to complete current ratio
+\
+\ C(0)  = Count of rewards
+\ C(1)  = Count of trials
+\ C(2)  = Count of time outs for no press within time limit (A(2))
+\ C(3)  = Count of active lever presses
+\ C(4)  = Count of inactive lever presses
+\ C(5)  = Count of lever presses on active lever in TO
+\ C(6)  = Count of presses on inactive lever in TO
+\ C(7)  = Count of lever presses on active lever in social interaction period
+\ C(8)  = Count of presses on inactive lever in social interaction period
+\
+\ D = List for progressive ratio
+\
+\ E() = event identity stamps
+\       1  - Door opens
+\       2  - Door closes
+\       3  - Active lever press during FR
+\       4  - House light on
+\       5  - House light off
+\       6  - Tone on
+\       7  - Tone off
+\       8  - Active lever extends
+\       9  - Active lever retracts
+\      10  - Inactive lever extends
+\      11  - Inactive lever retracts
+\      12  - Inactive lever press during FR
+\      13  - Trial starts
+\      14  - Trial ends
+\      15  - Active lever cue light on
+\      16  - Active lever cue light off
+\      17  - TO starts
+\      18  - TO ends
+\      19  - Omission - no press within time limit
+\      20  - Active lever press during TO
+\      21  - Inactive lever press during TO
+\      22  - Active lever press during social interaction period
+\      23  - Inactive lever press during social interaction period
+\      24  - PR break point reached
+\     100  - End session marker
+\
+\ F  = FR countdown variable
+\ G  = Event counter
+\ H  = Session timer
+\
+\ T() = event time stamps
+\ X(0) = Current response ratio
+\ X(1) = Subscript for D list
+
+
+
+
+DIM A = 20
+DIM B = 20
+DIM C = 10
+DIM E = 50000
+DIM T = 50000
+DIM X = 1
+
+LIST D = 1, 2, 4, 6, 9, 12, 15, 20, 25, 32, 40, 50, 62, 77, 95, 118, 145, 178, 219, 268, 328, 402, 492, 603
+
+
+
+
+VAR_ALIAS 01)Session length (min) = A(0)
+VAR_ALIAS 02)Delay to extend lev (sec) = A(1)
+VAR_ALIAS 03)Time limit to start ratio (sec 0:No limit) = A(2)
+VAR_ALIAS 04)Reward tone duration (sec) = A(3)
+VAR_ALIAS 05)Social interaction time (sec) = A(4)
+VAR_ALIAS 06)TO (sec) = A(7)
+VAR_ALIAS 07)Response ratio (0:PR) = A(5)
+VAR_ALIAS 08)PR break pnt time-limit(min) = A(10)
+VAR_ALIAS 09)Active lever (0:Left 1:Right) = A(6)
+VAR_ALIAS 10)Lev cue lt duration (sec) = A(9)
+VAR_ALIAS 11)Retract levs for TO(0:No 1:Yes) = A(8)
+
+
+
+
+
+S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
+  S1,
+    0": SET A(0)  = 60;     \Session length (min)
+        SET A(1)  = 0;      \Delay to extend lever (sec)
+        SET A(2)  = 0;      \Time limit to start response ratio (sec  0:No limit)
+        SET A(3)  = 0;      \Reward tone duration (sec)
+        SET A(4)  = 60;     \Social interaction time (sec)
+        SET A(5)  = 0;      \Response ratio (0:PR)
+        SET A(6)  = 1;      \Active lever (0:Left 1:Right)
+        SET A(7)  = 30;     \TO (sec)
+        SET A(8)  = 0;      \Retract levers for TO (0:No 1:Yes)
+        SET A(9)  = 6;      \Lever cue light duration (sec)
+        SET A(10) = 60;     \PR break point time-limit(min), time-limit to complete current ratio
+        SET T(0) = -987.987, E(0) = -987.987; \ Time and date stamp arrays
+        ON ^Fan ---> S2
+  S2,
+    #START: ADD C(1) ---> S3
+  S3,
+    #Z4!#Z5: ADD C(1);
+             IF H >= (A(0)*6000) [@END, @NOTEND]
+             @END: ---> SX
+             @NOTEND: Z9;
+                      SET T(G) = H, E(G) = 17; ADD G;
+                      SET T(G) = -987.987, E(G) = -987.987;
+                      SET B(7) = A(7) * 1" ---> S4
+  S4,  \ TO
+    B(7)#T: Z1;
+            SET T(G) = H, E(G) = 18; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987 ---> S3
+
+
+
+
+
+S.S.2,  \ SETTING RESPONSE RATIO
+  S1,
+    #START: IF A(5) = 0 [@PR, @FR]
+            @PR: LIST X(0) = D(X(1)) ---> S2
+            @FR: ---> S1
+  S2,
+    #Z4: IF A(5) = 0 [@PR, @FR]
+         @PR: LIST X(0) = D(X(1)) ---> S2
+         @FR: ---> SX
+
+
+
+
+
+S.S.3,  \ PR BREAK POINT
+  S1,
+    #START: IF A(5) = 0 [@PR, @FR]
+            @PR: ---> S2
+            @FR: ---> SX
+  S2,
+    #Z6: SET B(11) = A(10) * 1' ---> S3
+  S3,
+    #Z3!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
+             @NORETRACT: ---> S4
+             @RETRACT: ---> S2
+    B(11)#T: SET A(11) = X(0);
+             SHOW 2, Rewards: , C(0);
+             SHOW 3, Omissions: , C(2);
+             SHOW 4, Active press: , C(3);
+             SHOW 5, Inactive press: , C(4);
+             SHOW 10, Active TO press: , C(5);
+             SHOW 11, Inactive TO press: , C(6);
+             SHOW 12, Break point: , A(11);
+             SHOW 14, Break Pnt CntDwn: , 0;
+             SHOW 22, Active soc int press: , C(7);
+             SHOW 23, Inactive soc int press: , C(8);
+             SET T(G) = H, E(G) = 24; ADD G;
+             SET T(G) = H, E(G) = 100; ADD G;
+             SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
+  S4,
+    #Z1: SET B(11) = A(10) * 1' ---> S3
+
+
+
+
+
+
+S.S.4,  \ DOOR CONTROL
+  S1,
+    #START: ---> S2
+  S2,
+    #Z2: ON ^Door; Z3;
+         SET T(G) = H, E(G) = 1; ADD G;
+         SET T(G) = -987.987, E(G) = -987.987;
+         SET B(0) = A(4) * 1" ---> S3
+  S3,
+    B(0)#T: OFF ^Door; Z4;
+            SET T(G) = H, E(G) = 2; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987 ---> S2
+
+
+
+
+
+S.S.5,  \ HOUSELIGHT
+  S1,
+    #START!#Z1: ON ^HouseLt;
+                SET T(G) = H, E(G) = 4; ADD G;
+                SET T(G) = -987.987, E(G) = -987.987 ---> S2
+  S2,
+    #Z4!#Z5: OFF ^HouseLt;
+             SET T(G) = H, E(G) = 5; ADD G;
+             SET T(G) = -987.987, E(G) = -987.987 ---> S1
+
+
+
+
+
+S.S.6,   \ LEVERS EXTEND AND RETRACT
+  S1,
+    #START!#Z1: SET B(1) = A(1) * 1" ---> S2
+  S2,
+    B(1)#T: ON ^RightLevOut, ^LeftLevOut; Z6;
+            SET T(G) = H, E(G) = 8; ADD G;
+            SET T(G) = H, E(G) = 10; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987 ---> S3
+  S3,
+    #Z2!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
+             @NORETRACT: ---> SX
+             @RETRACT: OFF ^RightLevOut, ^LeftLevOut; Z7;
+                       SET T(G) = H, E(G) = 9; ADD G;
+                       SET T(G) = H, E(G) = 11; ADD G;
+                       SET T(G) = -987.987, E(G) = -987.987 ---> S1
+
+
+
+
+
+S.S.7,   \ LEVER CUE LIGHT
+  S1,
+     #Z3: IF A(9) = 0 [@NOCUELT, @CUELT]
+          @NOCUELT: ---> SX
+          @CUELT: SET B(10) = A(9) * 1";
+                  IF A(6) = 0 [@LEFT, @RIGHT]
+                  @LEFT: ON ^LeftLevLt;
+                         SET T(G) = H, E(G) = 15; ADD G;
+                         SET T(G) = -987.987, E(G) = -987.987 ---> S2
+                  @RIGHT: ON ^RightLevLt;
+                          SET T(G) = H, E(G) = 15; ADD G;
+                          SET T(G) = -987.987, E(G) = -987.987 ---> S2
+  S2,
+     B(10)#T: IF A(6) = 0 [@LEFT, @RIGHT]
+                  @LEFT: OFF ^LeftLevLt;
+                         SET T(G) = H, E(G) = 16; ADD G;
+                         SET T(G) = -987.987, E(G) = -987.987 ---> S1
+                  @RIGHT: OFF ^RightLevLt;
+                          SET T(G) = H, E(G) = 16; ADD G;
+                          SET T(G) = -987.987, E(G) = -997.987 ---> S1
+
+
+
+
+
+S.S.8,   \ TONE
+  S1,
+    #Z2: IF A(3) > 0 [@TONE, @NOTONE]
+         @TONE: ON ^Sonalert;
+                SET B(2) = A(3) * 1";
+                SET T(G) = H, E(G) = 6; ADD G;
+                SET T(G) = -987.987, E(G) = -987.987 ---> S2
+         @NOTONE: ---> SX
+   S2,
+    B(2)#T: OFF ^Sonalert;
+            SET T(G) = H, E(G) = 7; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987 ---> S1
+
+
+
+
+
+S.S.9,   \ RECORD LEVER PRESSES, RESPONSE RATIO
+  S1,
+    #Z6: SET B(3) = X(0), B(11) = A(10) * 1';
+         IF A(6) = 0 [@LEFT, @RIGHT]
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
+  S2,
+    1#R^LeftLevIn: SUB B(3); ADD C(3);
+                   SET T(G) = H, E(G) = 3; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987;
+                   IF B(3) <= 0 [@FRDONE, @FRNOTDONE]
+                   @FRDONE: Z2; ADD C(0);
+                            IF A(8) = 0 [@NORETRACT, @RETRACT]
+                            @NORETRACT: ---> S4
+                            @RETRACT: ---> S1
+                   @FRNOTDONE: Z8 ---> S2
+    1#R^RightLevIn: ADD C(4);
+                    SET T(G) = H, E(G) = 12; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    B(5)#T: Z5; ADD C(2);
+            SET T(G) = H, E(G) = 19; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987;
+            IF A(8) = 0 [@NORETRACT, @RETRACT]
+            @NORETRACT: ---> S6
+            @RETRACT: ---> S1
+  S3,
+    1#R^RightLevIn: SUB B(3); ADD C(3);
+                    SET T(G) = H, E(G) = 3; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987;
+                    IF B(3) <= 0 [@FRDONE, @FRNOTDONE]
+                    @FRDONE: Z2; ADD C(0);
+                             IF A(8) = 0 [@NORETRACT, @RETRACT]
+                             @NORETRACT: ---> S5
+                             @RETRACT: ---> S1
+                    @FRNOTDONE: Z8 ---> S3
+    1#R^LeftLevIn: ADD C(4);
+                   SET T(G) = H, E(G) = 12; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    B(5)#T: Z5; ADD C(2);
+            SET T(G) = H, E(G) = 19; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987;
+            IF A(8) = 0 [@NORETRACT, @RETRACT]
+            @NORETRACT: ---> S7
+            @RETRACT: ---> S1
+  S4, \\ Social period lever presses
+    1#R^LeftLevIn: ADD C(3), C(7);
+                   SET T(G) = H, E(G) = 22; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^RightLevIn: ADD C(4), C(8);
+                    SET T(G) = H, E(G) = 23; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z9: ---> S6
+  S5, \\ Social period lever presses
+    1#R^RightLevIn: ADD C(3), C(7);
+                    SET T(G) = H, E(G) = 22; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^LeftLevIn: ADD C(4), C(8);
+                   SET T(G) = H, E(G) = 23; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z9: ---> S7
+  S6, \\ TO lever presses
+    1#R^LeftLevIn: ADD C(3), C(5);
+                   SET T(G) = H, E(G) = 20; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^RightLevIn: ADD C(4), C(6);
+                    SET T(G) = H, E(G) = 21; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z1: SET B(3) = X(0);
+         IF A(6) = 0 [@LEFT, @RIGHT]
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
+  S7, \\ TO lever presses
+    1#R^RightLevIn: ADD C(3), C(5);
+                    SET T(G) = H, E(G) = 20; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^LeftLevIn: ADD C(4), C(6);
+                   SET T(G) = H, E(G) = 21; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z1: SET B(3) = X(0);
+         IF A(6) = 0 [@LEFT, @RIGHT]
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
+
+
+
+
+
+S.S.10,  \ SOCIAL INTERACTION TIMER DISPLAY
+  S1,
+    #Z3: SET B(4) = A(4);
+         SHOW 6, Social CntDwn: , B(4) ---> S2
+  S2,
+    1": SUB B(4);
+        IF B(4) <= 0 [@NODISPLAY, @DISPLAY]
+        @NODISPLAY: SHOW 6, Social CntDwn: , 0 ---> S1
+        @DISPLAY: SHOW 6, Social CntDwn: , B(4) ---> S2
+    #Z4: SHOW 6, Social CntDwn: , 0 ---> S1
+
+
+
+
+
+S.S.11,  \ TIME LIMIT TO PRESS TIMER DISPLAY
+  S1,
+    #Z6: SET B(6) = A(2);
+         SHOW 8, Press Timelimit: , B(6) ---> S2
+  S2,
+    1": SUB B(6);
+        IF B(6) <= 0 [@NODISPLAY, @DISPLAY]
+        @NODISPLAY: SHOW 8, Press Timelimit: , 0;
+                    IF A(8) = 0 [@NORETRACT, @RETRACT]
+                    @NORETRACT: ---> S3
+                    @RETRACT: ---> S1
+        @DISPLAY: SHOW 8, Press Timelimit: , B(6) ---> S2
+    #Z8: SET B(6) = A(2);
+         SHOW 8, Press Timelimit: , B(6) ---> S2
+    #Z2: SHOW 8, Press Timelimit: , 0;
+         IF A(8) = 0 [@NORETRACT, @RETRACT]
+         @NORETRACT: ---> S3
+         @RETRACT: ---> S1
+  S3,
+    #Z1: SET B(6) = A(2);
+         SHOW 8, Press Timelimit: , B(6) ---> S2
+
+
+
+
+
+S.S.12,  \ TO TIMER DISPLAY
+  S1,
+    #Z4!#Z5: IF (H >= (A(0)*6000)) [@YESEND, @NOEND]
+             @YESEND: ---> SX
+             @NOEND: SET B(8) = A(7);
+                     SHOW 9, TO CntDwn: , B(8) ---> S2
+  S2,
+    1": SUB B(8);
+        IF B(8) <= 0 [@NODISPLAY, @DISPLAY]
+        @NODISPLAY: SHOW 9, TO CntDwn: , 0 ---> S1
+        @DISPLAY: SHOW 9, TO CntDwn: , B(8) ---> S2
+    #Z1: SHOW 9, TO CntDwn: , 0 ---> S1
+
+
+
+
+
+S.S.13,  \ BREAK POINT TIME-LIMIT DISPLAY
+  S1,
+    #START: IF A(5) = 0 [@PR, @FR]
+            @PR: SET B(12) = A(10) * 60 ---> S2
+            @FR: ---> SX
+  S2,
+    #Z6: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
+  S3,
+    #Z3!#Z5: ---> S4
+    1": SUB B(12);
+        SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
+  S4,
+    #Z1: SET B(12) = A(10) * 60;
+         IF A(8) = 0 [@NORETRACT, @RETRACT]
+         @NORETRACT: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
+         @RETRACT: ---> S2
+
+
+
+
+
+S.S.14,  \ DATA DISPLAY
+  S1,
+    #START: ---> S2
+  S2,
+    .2": SHOW 2, Rewards: , C(0);
+         SHOW 3, Omissions: , C(2);
+         SHOW 4, Active press: , C(3);
+         SHOW 5, Inactive press: , C(4);
+         SHOW 10, Active TO press: , C(5);
+         SHOW 11, Inactive TO press: , C(6);
+         SHOW 22, Active soc int press: , C(7);
+         SHOW 23, Inactive soc int press: , C(8);
+         IF H >= (A(0)*6000) [@YESEDND, @NOEND]
+         @YESEND: ---> S3
+         @NOEND: SHOW 1, Trial: , C(1) ---> S2
+  S3,
+    #START: ---> SX
+
+
+
+
+
+S.S.15,  \ SESSION TIME DISPLAY
+  S1,
+    #START: ---> S2
+  S2,
+    1": ADD B(9); SHOW 7, Sess Time(min): , (B(9))/60 ---> S2
+
+
+
+
+
+S.S.16,  \ SESSION TIMER AND TERMINATION
+  S1,
+    #START: ---> S2
+  S2,
+    0.01": ADD H;
+           IF H >= (A(0)*6000) [@YESEND, @NOEND]
+           @YESEND: SHOW 2, Rewards: , C(0);
+                    SHOW 3, Omissions: , C(2);
+                    SHOW 4, Active press: , C(3);
+                    SHOW 5, Inactive press: , C(4);
+                    SHOW 10, Active TO press: , C(5);
+                    SHOW 11, Inactive TO press: , C(6);
+                    SHOW 22, Active soc int press: , C(7);
+                    SHOW 23, Inactive soc int press: , C(8);
+                    SET T(G) = H, E(G) = 100; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
+           @NOEND: ---> S2
