@@ -58,7 +58,7 @@
 \  of this program that matches our
 \  drug PR program"
 \
-\           : This is LS_SocialOperant_V4
+\           : This is LS_SocialOperant_V4_FR and LS_SocialOperant_V4_PR
 \
 
 
@@ -208,12 +208,12 @@ VAR_ALIAS 11)Retract levs for TO(0:No 1:Yes) = A(8)
 
 S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
   S1,
-    0": SET A(0)  = 60;     \Session length (min)
+    0": SET A(0)  = 360;     \Session length (min)
         SET A(1)  = 0;      \Delay to extend lever (sec)
         SET A(2)  = 0;      \Time limit to start response ratio (sec  0:No limit)
         SET A(3)  = 0;      \Reward tone duration (sec)
         SET A(4)  = 60;     \Social interaction time (sec)
-        SET A(5)  = 1;      \Response ratio (0:PR)
+        SET A(5)  = 0;      \Response ratio (0:PR)
         SET A(6)  = 1;      \Active lever (0:Left 1:Right)
         SET A(7)  = 30;     \TO (sec)
         SET A(8)  = 0;      \Retract levers for TO (0:No 1:Yes)
