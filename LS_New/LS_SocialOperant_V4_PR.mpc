@@ -208,11 +208,7 @@ VAR_ALIAS 11)Retract levs for TO(0:No 1:Yes) = A(8)
 
 S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
   S1,
-<<<<<<< HEAD
     0": SET A(0)  = 360;     \Session length (min)
-=======
-    0": SET A(0)  = 60;     \Session length (min)
->>>>>>> 18f59f321a80b443522558d24d380c0c7ed26e15
         SET A(1)  = 0;      \Delay to extend lever (sec)
         SET A(2)  = 0;      \Time limit to start response ratio (sec  0:No limit)
         SET A(3)  = 0;      \Reward tone duration (sec)
@@ -361,11 +357,7 @@ S.S.7,   \ LEVER CUE LIGHT
                          SET T(G) = -987.987, E(G) = -987.987 ---> S1
                   @RIGHT: OFF ^RightLevLt;
                           SET T(G) = H, E(G) = 16; ADD G;
-<<<<<<< HEAD
                           SET T(G) = -987.987, E(G) = -987.987 ---> S1
-=======
-                          SET T(G) = -987.987, E(G) = -997.987 ---> S1
->>>>>>> 18f59f321a80b443522558d24d380c0c7ed26e15
 
 
 

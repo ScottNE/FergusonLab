@@ -357,11 +357,7 @@ S.S.7,   \ LEVER CUE LIGHT
                          SET T(G) = -987.987, E(G) = -987.987 ---> S1
                   @RIGHT: OFF ^RightLevLt;
                           SET T(G) = H, E(G) = 16; ADD G;
-<<<<<<< HEAD
                           SET T(G) = -987.987, E(G) = -987.987 ---> S1
-=======
-                          SET T(G) = -987.987, E(G) = -997.987 ---> S1
->>>>>>> 18f59f321a80b443522558d24d380c0c7ed26e15
 
 
 
