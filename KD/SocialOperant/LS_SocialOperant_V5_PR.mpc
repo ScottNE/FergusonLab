@@ -277,11 +277,11 @@ S.S.2,  \ SETTING RESPONSE RATIO
   S1,
     #START: IF A(5) = 0 [@PR, @FR]
             @PR: LIST X(0) = D(X(1)) ---> S2
-            @FR: ---> S1
+            @FR: SET X(0) = A(5) ---> S1
   S2,
     #Z4: IF A(5) = 0 [@PR, @FR]
          @PR: LIST X(0) = D(X(1)) ---> S2
-         @FR: ---> SX
+         @FR: SET X(0) = A(5) ---> SX
 
 
 
@@ -295,9 +295,7 @@ S.S.3,  \ PR BREAK POINT
   S2,
     #Z6: SET B(11) = A(10) * 1' ---> S3
   S3,
-    #Z2: IF A(8) = 0 [@NORETRACT, @RETRACT]
-         @NORETRACT: ---> S4
-         @RETRACT: ---> S2
+    #Z2: SET B(11) = A(10) * 1' ---> S3
     B(11)#T: SET A(11) = X(0);
              SHOW 2, Rewards: , C(0);
              SHOW 3, Omissions: , C(2);
@@ -312,8 +310,6 @@ S.S.3,  \ PR BREAK POINT
              SET T(G) = H, E(G) = 24; ADD G;
              SET T(G) = H, E(G) = 100; ADD G;
              SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
-  S4,
-    #Z1: SET B(11) = A(10) * 1' ---> S3
 
 
 
@@ -583,14 +579,9 @@ S.S.13,  \ BREAK POINT TIME-LIMIT DISPLAY
   S2,
     #Z6: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
   S3,
-    #Z3!#Z5: ---> S4
+    #Z2: SET B(12) = A(10) * 60 ---> S3
     1": SUB B(12);
         SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
-  S4,
-    #Z1: SET B(12) = A(10) * 60;
-         IF A(8) = 0 [@NORETRACT, @RETRACT]
-         @NORETRACT: SHOW 14, Break Pnt CntDwn: , B(12) ---> S3
-         @RETRACT: ---> S2
 
 
 

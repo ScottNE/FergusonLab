@@ -497,7 +497,7 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
                    @FRDONE: Z2; ADD C(0);
                             IF A(8) = 0 [@NORETRACT, @RETRACT]
                             @NORETRACT: ---> S4
-                            @RETRACT: ---> S1
+                            @RETRACT: ---> S10
                    @FRNOTDONE: Z8; SET B(5) = (A(0)+60) * 1' ---> S2
     1#R^RightLevIn: ADD C(4);
                     SET T(G) = H, E(G) = 12; ADD G;
@@ -507,7 +507,7 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
             @NORETRACT: ---> S6
-            @RETRACT: ---> S1
+            @RETRACT: ---> S10
   S3,
     1#R^RightLevIn: SUB B(3); ADD C(3);
                     SET T(G) = H, E(G) = 3; ADD G;
@@ -516,7 +516,7 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
                     @FRDONE: Z2; ADD C(0);
                              IF A(8) = 0 [@NORETRACT, @RETRACT]
                              @NORETRACT: ---> S5
-                             @RETRACT: ---> S1
+                             @RETRACT: ---> S10
                     @FRNOTDONE: Z8; SET B(5) = (A(0)+60) * 1' ---> S3
     1#R^LeftLevIn: ADD C(4);
                    SET T(G) = H, E(G) = 12; ADD G;
@@ -526,7 +526,7 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
             SET T(G) = -987.987, E(G) = -987.987;
             IF A(8) = 0 [@NORETRACT, @RETRACT]
             @NORETRACT: ---> S7
-            @RETRACT: ---> S1
+            @RETRACT: ---> S10
   S4, \\ Social period lever presses
     1#R^LeftLevIn: ADD C(3), C(7);
                    SET T(G) = H, E(G) = 22; ADD G;
@@ -576,10 +576,12 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
 S8,
     1#R^LeftLevIn: ADD C(9);
                    SET T(G) = H, E(G) = 25; ADD G;
-                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                   SET T(G) = -987.987, E(G) = -987.987;
+                   SHOW 24, Active init-cue press: , C(9) ---> SX
     1#R^RightLevIn: ADD C(10);
                     SET T(G) = H, E(G) = 26; ADD G;
-                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                    SET T(G) = -987.987, E(G) = -987.987;
+                    SHOW 25, Inactive init-cue press , C(10) ---> SX
     #Z10: SET B(3) = X(0), B(11) = A(10) * 1';
           IF A(6) = 0 [@LEFT, @RIGHT]
           @LEFT: IF A(2) = 0 [@NOTL, @TL]
@@ -592,9 +594,11 @@ S9,
     1#R^RightLevIn: ADD C(9);
                     SET T(G) = H, E(G) = 25; ADD G;
                     SET T(G) = -987.987, E(G) = -987.987;
+                    SHOW 24, Active init-cue press: , C(9) ---> SX
     1#R^LeftLevIn: ADD C(10);
                    SET T(G) = H, E(G) = 26; ADD G;
-                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+                   SET T(G) = -987.987, E(G) = -987.987;
+                   SHOW 25, Inactive init-cue press , C(10) ---> SX
     #Z10: SET B(3) = X(0), B(11) = A(10) * 1';
           IF A(6) = 0 [@LEFT, @RIGHT]
           @LEFT: IF A(2) = 0 [@NOTL, @TL]
@@ -603,6 +607,15 @@ S9,
           @RIGHT: IF A(2) = 0 [@NOTL, @TL]
                   @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
                   @TL: SET B(5) = A(2) * 1" ---> S3
+S10,
+    #Z6: SET B(3) = X(0), B(11) = A(10) * 1';
+         IF A(6) = 0 [@LEFT, @RIGHT]
+         @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                @TL: SET B(5) = A(2) * 1" ---> S2
+         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                 @TL: SET B(5) = A(2) * 1" ---> S3
 
 
 
