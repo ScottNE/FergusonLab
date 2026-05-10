@@ -142,7 +142,7 @@
 \ A(7)  = Inter-trial interval (sec)
 \ A(8)  = Retract levers for TO (0:No 1:Yes)
 \ A(9)  = Lev cue lt duration (sec)
-\ A(10) = PR break pnt time-limit(min), time to complete current ratio
+\ A(10) = PR break pnt time-limit(min), since last completed ratio
 \ A(11) = Break point recorded
 \ A(12) = Houselight during session?(0:No 1:Yes)
 \
@@ -240,9 +240,9 @@ VAR_ALIAS 13)Retract levs for TO(0:No 1:Yes) = A(8)
 
 S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
   S1,
-    0": SET A(0)  = 120;    \Session length (min)
+    0": SET A(0)  = 360;    \Session length (min)
         SET A(1)  = 0;      \Delay to extend lever (sec)
-        SET A(2)  = 60;     \Time limit to start response ratio (sec  0:No limit)
+        SET A(2)  = 0;      \Time limit to start response ratio (sec  0:No limit)
         SET A(3)  = 0;      \Reward tone duration (sec)
         SET A(4)  = 60;     \Social interaction time (sec)
         SET A(5)  = 0;      \Response ratio (0:PR)
@@ -250,7 +250,7 @@ S.S.1,  \ DEFAULT SET-UP AND TRIAL START TIMING
         SET A(7)  = 10;     \TO between trials (sec)
         SET A(8)  = 1;      \Retract levers for TO (0:No 1:Yes)
         SET A(9)  = 20;     \Lever cue light duration (sec)
-        SET A(10) = 60;     \PR break point time-limit(min), time-limit to complete current ratio
+        SET A(10) = 60;     \PR break point time-limit(min), time-limit since last completed ratio
         SET A(12) = 0;      \Houselight during session?(0:No 1:Yes)
         SET T(0) = -987.987, E(0) = -987.987; \ Time and date stamp arrays
         ON ^Fan ---> S2
@@ -295,9 +295,9 @@ S.S.3,  \ PR BREAK POINT
   S2,
     #Z6: SET B(11) = A(10) * 1' ---> S3
   S3,
-    #Z3!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
-             @NORETRACT: ---> S4
-             @RETRACT: ---> S2
+    #Z2: IF A(8) = 0 [@NORETRACT, @RETRACT]
+         @NORETRACT: ---> S4
+         @RETRACT: ---> S2
     B(11)#T: SET A(11) = X(0);
              SHOW 2, Rewards: , C(0);
              SHOW 3, Omissions: , C(2);

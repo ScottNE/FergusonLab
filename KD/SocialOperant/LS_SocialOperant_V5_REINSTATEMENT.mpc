@@ -187,6 +187,8 @@
 \ C(6)  = Count of presses on inactive lever in TO
 \ C(7)  = Count of lever presses on active lever in social interaction period
 \ C(8)  = Count of presses on inactive lever in social interaction period
+\ C(9)  = Count of presses on active lever during initial cue
+\ C(10) = Count of presses on inactive lever during initial cue
 \
 \ D = List for progressive ratio
 \
@@ -215,6 +217,8 @@
 \      22  - Active lever press during social interaction period
 \      23  - Inactive lever press during social interaction period
 \      24  - PR break point reached
+\      25  - Active lever press during initial cue
+\      26  - Inactive lever press during initial cue
 \     100  - End session marker
 \
 \ F  = FR countdown variable
@@ -309,8 +313,8 @@ S.S.2,  \ REINSTATEMENT TRIAL TIMING
 S.S.3,  \ SETTING RESPONSE RATIO
   S1,
     #Z10: IF A(5) = 0 [@PR, @FR]
-            @PR: LIST X(0) = D(X(1)) ---> S2
-            @FR: ---> S1
+          @PR: LIST X(0) = D(X(1)) ---> S2
+          @FR: ---> S1
   S2,
     #Z4: IF A(5) = 0 [@PR, @FR]
          @PR: LIST X(0) = D(X(1)) ---> S2
@@ -342,6 +346,8 @@ S.S.4,  \ PR BREAK POINT
              SHOW 14, Break Pnt CntDwn: , 0;
              SHOW 22, Active soc int press: , C(7);
              SHOW 23, Inactive soc int press: , C(8);
+             SHOW 24, Active init-cue press: , C(9);
+             SHOW 25, Inactive init-cue press , C(10);
              SET T(G) = H, E(G) = 24; ADD G;
              SET T(G) = H, E(G) = 100; ADD G;
              SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
@@ -392,19 +398,24 @@ S.S.6,  \ HOUSELIGHT
 
 S.S.7,   \ LEVERS EXTEND AND RETRACT
   S1,
-    #Z10!#Z1: SET B(1) = A(1) * 1" ---> S2
+    #START: ON ^RightLevOut, ^LeftLevOut;
+            SET T(G) = H, E(G) = 8; ADD G;
+            SET T(G) = H, E(G) = 10; ADD G;
+            SET T(G) = -987.987, E(G) = -987.987 ---> S4
   S2,
+    #Z1: SET B(1) = A(1) * 1" ---> S3
+  S3,
     B(1)#T: ON ^RightLevOut, ^LeftLevOut; Z6;
             SET T(G) = H, E(G) = 8; ADD G;
             SET T(G) = H, E(G) = 10; ADD G;
-            SET T(G) = -987.987, E(G) = -987.987 ---> S3
-  S3,
+            SET T(G) = -987.987, E(G) = -987.987 ---> S4
+  S4,
     #Z2!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
              @NORETRACT: ---> SX
              @RETRACT: OFF ^RightLevOut, ^LeftLevOut; Z7;
                        SET T(G) = H, E(G) = 9; ADD G;
                        SET T(G) = H, E(G) = 11; ADD G;
-                       SET T(G) = -987.987, E(G) = -987.987 ---> S1
+                       SET T(G) = -987.987, E(G) = -987.987 ---> S2
 
 
 
@@ -472,16 +483,12 @@ S.S.9,   \ TONE
 
 
 
+
 S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
   S1,
-    #Z6: SET B(3) = X(0), B(11) = A(10) * 1';
-         IF A(6) = 0 [@LEFT, @RIGHT]
-         @LEFT: IF A(2) = 0 [@NOTL, @TL]
-                @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
-                @TL: SET B(5) = A(2) * 1" ---> S2
-         @RIGHT: IF A(2) = 0 [@NOTL, @TL]
-                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
-                 @TL: SET B(5) = A(2) * 1" ---> S3
+    #START: IF A(6) = 0 [@LEFT, @RIGHT]
+            @LEFT: ---> S8
+            @RIGHT: ---> S9
   S2,
     1#R^LeftLevIn: SUB B(3); ADD C(3);
                    SET T(G) = H, E(G) = 3; ADD G;
@@ -566,6 +573,37 @@ S.S.10,   \ RECORD LEVER PRESSES, RESPONSE RATIO
          @RIGHT: IF A(2) = 0 [@NOTL, @TL]
                  @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
                  @TL: SET B(5) = A(2) * 1" ---> S3
+S8,
+    1#R^LeftLevIn: ADD C(9);
+                   SET T(G) = H, E(G) = 25; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    1#R^RightLevIn: ADD C(10);
+                    SET T(G) = H, E(G) = 26; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z10: SET B(3) = X(0), B(11) = A(10) * 1';
+          IF A(6) = 0 [@LEFT, @RIGHT]
+          @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                 @TL: SET B(5) = A(2) * 1" ---> S2
+          @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                  @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                  @TL: SET B(5) = A(2) * 1" ---> S3
+S9,
+    1#R^RightLevIn: ADD C(9);
+                    SET T(G) = H, E(G) = 25; ADD G;
+                    SET T(G) = -987.987, E(G) = -987.987;
+    1#R^LeftLevIn: ADD C(10);
+                   SET T(G) = H, E(G) = 26; ADD G;
+                   SET T(G) = -987.987, E(G) = -987.987 ---> SX
+    #Z10: SET B(3) = X(0), B(11) = A(10) * 1';
+          IF A(6) = 0 [@LEFT, @RIGHT]
+          @LEFT: IF A(2) = 0 [@NOTL, @TL]
+                 @NOTL: SET B(5) = (A(0)+60) * 1' ---> S2
+                 @TL: SET B(5) = A(2) * 1" ---> S2
+          @RIGHT: IF A(2) = 0 [@NOTL, @TL]
+                  @NOTL: SET B(5) = (A(0)+60) * 1' ---> S3
+                  @TL: SET B(5) = A(2) * 1" ---> S3
+
 
 
 
@@ -662,6 +700,8 @@ S.S.15,  \ DATA DISPLAY
          SHOW 11, Inactive TO press: , C(6);
          SHOW 22, Active soc int press: , C(7);
          SHOW 23, Inactive soc int press: , C(8);
+         SHOW 24, Active init-cue press: , C(9);
+         SHOW 25, Inactive init-cue press , C(10);
          IF H >= (A(0)*6000) [@YESEDND, @NOEND]
          @YESEND: ---> S3
          @NOEND: SHOW 1, Trial: , C(1) ---> S2
@@ -696,6 +736,8 @@ S.S.17,  \ SESSION TIMER AND TERMINATION
                     SHOW 11, Inactive TO press: , C(6);
                     SHOW 22, Active soc int press: , C(7);
                     SHOW 23, Inactive soc int press: , C(8);
+                    SHOW 24, Active init-cue press: , C(9);
+                    SHOW 25, Inactive init-cue press , C(10);
                     SET T(G) = H, E(G) = 100; ADD G; SET T(G) = -987.987, E(G) = -987.987 ---> STOPABORTFLUSH
            @NOEND: ---> S2
 

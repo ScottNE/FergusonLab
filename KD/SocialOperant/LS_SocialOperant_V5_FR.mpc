@@ -295,9 +295,9 @@ S.S.3,  \ PR BREAK POINT
   S2,
     #Z6: SET B(11) = A(10) * 1' ---> S3
   S3,
-    #Z3!#Z5: IF A(8) = 0 [@NORETRACT, @RETRACT]
-             @NORETRACT: ---> S4
-             @RETRACT: ---> S2
+    #Z2: IF A(8) = 0 [@NORETRACT, @RETRACT]
+         @NORETRACT: ---> S4
+         @RETRACT: ---> S2
     B(11)#T: SET A(11) = X(0);
              SHOW 2, Rewards: , C(0);
              SHOW 3, Omissions: , C(2);
