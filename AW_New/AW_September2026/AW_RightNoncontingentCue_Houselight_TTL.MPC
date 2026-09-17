@@ -1,0 +1,137 @@
+\ Non-contingent Left Cue Light Presentation
+\ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+\ Non-contingent left cue light presentation every 5 min with
+\ TTL pulses for cue presentation, start, and end session.
+\
+\ Intended for Alex Whitebirch
+
+\ INPUTS
+\ ~~~~~~~
+^LeftLeverIn  = 1
+^RightLeverIn = 3
+^HeadEntry    = 5
+
+
+\ OUTPUTS
+\ ~~~~~~~~
+^LeftLeverOut   = 1
+^RightLeverOut  = 2
+^Feeder         = 3
+^LeftCueLight   = 4
+^RightCueLight  = 5
+^HouseLight     = 7
+^Tone           = 8
+^Syringepump    = 9
+^Fan            = 10
+^GreenLight     = 11
+^Shock          = 12
+
+
+^StartSession_TTL        = 17
+^CueLight_TTL            = 18
+^HouseLight_TTL          = 19
+^EndSession_TTL          = 23
+
+\ Z-PULSES
+\ ~~~~~~~~~
+\ Z1 = Left cue light presentation
+\ Z2 = House light presentation
+
+\ VARIABLES
+\ ~~~~~~~~~
+\ A = Right cue light presentations
+\ B = House light presentations
+\ C = Max time (minutes)
+\ E = Event stamps
+\     5 - Right cue light presentation
+\    10 - House light presentation
+\   100 - Session ends, data saved
+\
+\ F = Time stamps
+\ G = Counter for event and time stamps
+\ H = Session timer
+
+DIM E = 10000
+DIM F = 10000
+
+
+S.S.1,  \Start of session
+  S1,
+    0.01": ON ^Fan;
+           SET C = 9.99';
+           SET E(G) = -987.987;
+           SET F(G) = -987.987 ---> S2
+
+  S2,
+    #START: ON ^StartSession_TTL ---> S3
+
+  S3,
+    0.05': OFF ^StartSession_TTL ---> SX
+
+S.S.2,  \Cue light presentation on
+  S1,
+    #START: ---> S2
+
+  S2,
+    30": ON ^RightCueLight; Z1 ---> S3
+
+  S3,
+    2': ON ^RightCueLight; Z1 ---> S3
+
+S.S.3,  \Cue light presentation off
+  S1,
+    #Z1: ON ^CueLight_TTL ---> S2
+
+  S2,
+    4": OFF ^RightCueLight; OFF ^CueLight_TTL ---> S1
+
+S.S.4,  \House light presentation on
+  S1,
+    #START: ---> S2
+
+  S2,
+    1': ON ^HouseLight; Z2 ---> S3
+
+  S3,
+    2': ON ^HouseLight; Z2 ---> S3
+
+S.S.5,  \House light presentation off
+  S1,
+    #Z2: ON ^HouseLight_TTL ---> S2
+
+  S2,
+    60": OFF ^HouseLight; OFF ^HouseLight_TTL ---> S1
+
+S.S.6,  \Session timer
+  S1,
+    #START: ---> S2
+
+  S2,
+    0.01": ADD H ---> S2
+
+S.S.7,  \Information accumulation
+  S1,
+    #Z1: ADD A; SET E(G) = 5; SET F(G) = H; ADD G;
+         SET E(G) = -987.987; SET F(G) = -987.987 ---> S1
+
+    #Z2: ADD B; SET E(G) = 10; SET F(G) = H; ADD G;
+         SET E(G) = -987.987; SET F(G) = -987.987 ---> S1
+
+S.S.8,  \Display
+  S1,
+    #START: ---> S2
+
+  S2,
+    0.2": SHOW 1, Session Timer: , H/1';
+          SHOW 2, Cue Presentations: , A ---> S2
+
+S.S.9,  \End Session
+  S1,
+    #START: ---> S2
+
+  S2,
+    C#T: ON ^EndSession_TTL;
+         SET E(G) = 100; SET F(G) = H; ADD G;
+         SET E(G) = -987.987; SET F(G) = -987.987 ---> STOPABORTFLUSH
+
+
